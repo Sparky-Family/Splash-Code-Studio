@@ -1,4 +1,4 @@
-**# 💧 Splash Code Studio (SC)**
+**# 📦 Splash Code Studio (SC)**
 
 
 
@@ -32,7 +32,7 @@
 
 **- 📂 Dosya yönetimi ve proje desteği**
 
-**- 🖥️ Pek çok dil desteği geliştirme**
+**- 🖥️ Pek çok dil desteği ile geliştirme**
 
 
 
