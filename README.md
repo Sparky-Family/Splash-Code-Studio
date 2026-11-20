@@ -32,7 +32,7 @@
 
 **- 📂 Dosya yönetimi ve proje desteği**
 
-**- 🖥️ Python odaklı geliştirme**
+**- 🖥️ Pek çok dil desteği geliştirme**
 
 
 
@@ -68,13 +68,13 @@
 
 **### Features**
 
-**- ⚡ Fast startup, lightweight structure**
+**- ⚡ Lightweight structure**
 
 **- 🎨 Clean and stylish interface**
 
 **- 📂 File management and project support**
 
-**- 🖥️ Python-focused development**
+**- 🖥️ With so many programming language development**
 
 
 
