@@ -1898,3 +1898,805 @@ Api.klasor_sec = _sc014_klasor_sec
 Api.oturum_yukle = _sc014_oturum_yukle
 Api.oturum_kaydet = _sc014_oturum_kaydet
 # ===== /SC-SESSION-014 =====
+# ===== SC-015 =====
+# rememberProject / rememberSession GERCEKTEN uygulanir.
+# Oncesi: bu iki ayar sadece kaydediliyordu, hicbir yerde
+#         kontrol edilmiyordu. Simdi her nokta denetleniyor.
+
+_sc015_orig_ayarlari_kaydet = Api.ayarlari_kaydet
+_sc015_orig_klasor_sec      = Api.klasor_sec
+_sc015_orig_oturum_yukle    = Api.oturum_yukle
+_sc015_orig_oturum_kaydet   = Api.oturum_kaydet
+_sc015_orig_bilgi           = Api.bilgi
+
+_SC015_EMPTY_SESSION = {
+    "cwd": None, "tabs": [], "activeTab": None,
+    "recentFiles": [],
+}
+
+
+def _sc015_ayarlari_kaydet(self, s):
+    data = dict(s or {})
+    # rememberProject kapatildi -> lastProject silinir
+    rp = data.get("rememberProject",
+                  self.settings.get("rememberProject", True))
+    if not rp:
+        data["lastProject"] = None
+    result = _sc015_orig_ayarlari_kaydet(self, data)
+    # rememberSession kapatildi -> oturum dosyasi temizlenir
+    rs = self.settings.get("rememberSession", True)
+    if not rs:
+        self.session = dict(_SC015_EMPTY_SESSION)
+        try:
+            save_session(self.session)
+        except Exception:
+            pass
+    return result
+
+
+def _sc015_klasor_sec(self):
+    result = _sc015_orig_klasor_sec(self)
+    # rememberProject kapaliysa lastProject kalici olmaz
+    if isinstance(result, dict) and result.get("ok"):
+        if not self.settings.get("rememberProject", True):
+            self.settings["lastProject"] = None
+            try:
+                save_settings(self.settings)
+            except Exception:
+                pass
+    return result
+
+
+def _sc015_oturum_yukle(self):
+    if not self.settings.get("rememberSession", True):
+        return dict(_SC015_EMPTY_SESSION)
+    return _sc015_orig_oturum_yukle(self)
+
+
+def _sc015_oturum_kaydet(self, s):
+    if not self.settings.get("rememberSession", True):
+        return {"ok": True, "skipped": True}
+    return _sc015_orig_oturum_kaydet(self, s)
+
+
+def _sc015_bilgi(self):
+    result = _sc015_orig_bilgi(self)
+    # rememberProject kapaliysa frontend tree yuklemesin
+    if isinstance(result, dict):
+        if not self.settings.get("rememberProject", True):
+            result["cwd"] = None
+    return result
+
+
+Api.ayarlari_kaydet = _sc015_ayarlari_kaydet
+Api.klasor_sec      = _sc015_klasor_sec
+Api.oturum_yukle    = _sc015_oturum_yukle
+Api.oturum_kaydet   = _sc015_oturum_kaydet
+Api.bilgi           = _sc015_bilgi
+# ===== /SC-015 =====
+# ===== SC-SPLIT-021 =====
+import os as _sc021_os
+
+
+def _sc021_split_temp_olustur(self, path, content):
+    try:
+        dirname = _sc021_os.path.dirname(path)
+        basename = _sc021_os.path.basename(path)
+        name, ext = _sc021_os.path.splitext(basename)
+        temp_name = name + "_temp" + ext
+        temp_path = _sc021_os.path.join(dirname, temp_name)
+        with open(temp_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        return {"ok": True, "path": temp_path, "name": temp_name,
+                "lang": get_lang(temp_path)}
+    except Exception as e:
+        return {"ok": False, "hata": str(e)}
+
+
+def _sc021_split_temp_sil(self, path):
+    try:
+        if path and _sc021_os.path.exists(path):
+            _sc021_os.remove(path)
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "hata": str(e)}
+
+
+Api.split_temp_olustur = _sc021_split_temp_olustur
+Api.split_temp_sil = _sc021_split_temp_sil
+# ===== /SC-SPLIT-021 =====
+# ===== SC-LSP-022 =====
+# LSP tamamlama kind fix + tree-sitter + resolve + debounce
+
+import re as _sc022_re
+import time as _sc022_time
+import json as _sc022_json
+
+# --- Completion kind categorization for fake_complete ---
+_SC022_KEYWORDS = {
+    "python": {"def", "class", "import", "from", "as", "return", "yield",
+               "if", "elif", "else", "for", "while", "break", "continue",
+               "pass", "try", "except", "finally", "with", "async", "await",
+               "lambda", "global", "nonlocal", "assert", "del", "raise",
+               "in", "is", "not", "and", "or", "True", "False", "None"},
+    "javascript": {"function", "const", "let", "var", "if", "else", "for",
+                   "while", "do", "switch", "case", "break", "continue",
+                   "return", "true", "false", "null", "undefined", "new",
+                   "this", "class", "extends", "super", "async", "await",
+                   "try", "catch", "finally", "throw", "typeof", "instanceof"},
+    "typescript": {"function", "const", "let", "var", "if", "else", "for",
+                   "while", "return", "true", "false", "null", "undefined",
+                   "new", "this", "class", "extends", "interface", "type",
+                   "enum", "namespace", "async", "await", "readonly",
+                   "private", "public", "protected", "abstract", "implements"},
+}
+_SC022_FUNCTIONS = {
+    "python": {"print", "input", "len", "range", "str", "int", "float",
+               "list", "dict", "set", "tuple", "bool", "type", "isinstance",
+               "getattr", "setattr", "hasattr", "open", "enumerate", "zip",
+               "map", "filter", "sorted", "reversed", "sum", "min", "max",
+               "abs", "round", "pow", "hex", "oct", "bin", "chr", "ord",
+               "repr", "hash", "id", "iter", "next", "all", "any", "callable",
+               "vars", "dir", "super", "object", "format"},
+    "javascript": {"console", "document", "window", "navigator", "setTimeout",
+                   "setInterval", "clearTimeout", "clearInterval", "parseInt",
+                   "parseFloat", "isNaN", "isFinite", "fetch", "alert",
+                   "confirm", "prompt", "atob", "btoa"},
+}
+_SC022_CONSTANTS = {
+    "python": {"True", "False", "None", "__name__", "__main__", "__init__"},
+    "javascript": {"true", "false", "null", "undefined", "NaN", "Infinity"},
+}
+
+def _sc022_categorize(word, lang):
+    """Return LSP completion kind (1-25) for a word."""
+    kw = _SC022_KEYWORDS.get(lang, set())
+    fn = _SC022_FUNCTIONS.get(lang, set())
+    cn = _SC022_CONSTANTS.get(lang, set())
+    if word in kw:
+        return 14  # Keyword
+    if word in cn:
+        return 21  # Constant
+    if word in fn:
+        return 3   # Function
+    if word.startswith('_') and word.endswith('_'):
+        return 14  # dunder -> Keyword
+    if word[0:1].isupper():
+        return 7   # Class
+    return 6       # Variable
+
+# Override fake_complete to include kind
+_sc022_orig_fake_complete = Api.fake_complete
+
+def _sc022_fake_complete(self, lang, text, line, col):
+    try:
+        lines = text.split("\n") if text else []
+        prefix = ""
+        if 0 <= line < len(lines):
+            prefix = lines[line][:col]
+        m = _sc022_re.search(r"([A-Za-z_][A-Za-z0-9_]*)$", prefix)
+        word = m.group(1) if m else ""
+        if not word:
+            return []
+        wl = word.lower()
+        candidates = []
+        for b in BUILTINS.get(lang, []):
+            if b.lower().startswith(wl) and b != word:
+                kind = _sc022_categorize(b, lang)
+                candidates.append({
+                    "label": b, "insertText": b,
+                    "sortText": "0_" + b, "kind": kind,
+                    "detail": "builtin",
+                })
+        words = set(_sc022_re.findall(
+            r"[A-Za-z_][A-Za-z0-9_]{2,}", text or ""))
+        for w in sorted(words):
+            if (w.lower().startswith(wl) and w != word
+                    and w not in BUILTINS.get(lang, [])):
+                kind = _sc022_categorize(w, lang)
+                candidates.append({
+                    "label": w, "insertText": w,
+                    "sortText": "1_" + w, "kind": kind,
+                    "detail": "local",
+                })
+        return candidates[:80]
+    except Exception:
+        return []
+
+Api.fake_complete = _sc022_fake_complete
+
+# --- LSP completion resolve + debounce ---
+_sc022_lsp_cache = {}
+_SC022_DEBOUNCE = 0.25  # seconds
+
+def _sc022_lsp_complete(self, lang, uri, text, line, col):
+    """Optimized LSP completion with resolve."""
+    try:
+        c = get_lsp(lang, self._cwd)
+        if not c.proc:
+            return {"items": []}
+        items = c.completion(uri, line, col, text)
+        if not items:
+            return {"items": []}
+        # Resolve top items to get kind/detail if missing
+        resolved = []
+        for item in items[:60]:
+            if item.get("kind") is None or item.get("kind") == 0:
+                # Try resolve
+                try:
+                    resp = c._request("completionItem/resolve", item, timeout=2)
+                    if resp and resp.get("result"):
+                        item = resp["result"]
+                except Exception:
+                    pass
+            if item.get("kind") is None:
+                item["kind"] = _sc022_categorize(
+                    item.get("label", ""), lang)
+            resolved.append(item)
+        return {"items": resolved}
+    except Exception:
+        return {"items": []}
+
+Api.lsp_complete = _sc022_lsp_complete
+
+# --- Tree-sitter API (Python ast + regex fallback) ---
+def _sc022_treesitter_parse(self, lang, code):
+    """Parse code and return symbols (functions, classes, variables)."""
+    try:
+        if lang == "python":
+            import ast
+            tree = ast.parse(code)
+            symbols = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    symbols.append({"name": node.name, "kind": 12,
+                                    "line": node.lineno, "type": "function"})
+                elif isinstance(node, ast.AsyncFunctionDef):
+                    symbols.append({"name": node.name, "kind": 12,
+                                    "line": node.lineno, "type": "function"})
+                elif isinstance(node, ast.ClassDef):
+                    symbols.append({"name": node.name, "kind": 5,
+                                    "line": node.lineno, "type": "class"})
+                elif isinstance(node, ast.Assign):
+                    for t in node.targets:
+                        if isinstance(t, ast.Name):
+                            symbols.append({"name": t.id, "kind": 13,
+                                            "line": node.lineno, "type": "variable"})
+            return {"ok": True, "symbols": symbols}
+        else:
+            # Regex fallback for other languages
+            symbols = []
+            for m in _sc022_re.finditer(
+                r'^\s*(?:function|def|fn|func)\s+(\w+)', code, _sc022_re.M):
+                symbols.append({"name": m.group(1), "kind": 12,
+                                "line": code[:m.start()].count('\n') + 1,
+                                "type": "function"})
+            for m in _sc022_re.finditer(
+                r'^\s*(?:class|struct|interface)\s+(\w+)', code, _sc022_re.M):
+                symbols.append({"name": m.group(1), "kind": 5,
+                                "line": code[:m.start()].count('\n') + 1,
+                                "type": "class"})
+            for m in _sc022_re.finditer(
+                r'^\s*(?:const|let|var|val)\s+(\w+)', code, _sc022_re.M):
+                symbols.append({"name": m.group(1), "kind": 13,
+                                "line": code[:m.start()].count('\n') + 1,
+                                "type": "variable"})
+            return {"ok": True, "symbols": symbols}
+    except SyntaxError as e:
+        return {"ok": False, "error": str(e)}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+Api.treesitter_parse = _sc022_treesitter_parse
+
+def _sc022_treesitter_bracket(self, code, line, col):
+    """Find matching bracket for position."""
+    try:
+        lines = code.split("\n")
+        if line >= len(lines):
+            return {"ok": False}
+        text = lines[line]
+        if col >= len(text):
+            return {"ok": False}
+        char = text[col]
+        open_brackets = "([{<"
+        close_brackets = ")]}>"
+        if char not in open_brackets + close_brackets:
+            # Check adjacent
+            if col + 1 < len(text) and text[col + 1] in open_brackets + close_brackets:
+                col += 1
+                char = text[col]
+            else:
+                return {"ok": False}
+        is_open = char in open_brackets
+        match_char = close_brackets[open_brackets.index(char)] if is_open else open_brackets[close_brackets.index(char)]
+        # Search forward/backward
+        depth = 0
+        if is_open:
+            for l in range(line, len(lines)):
+                start_col = col if l == line else 0
+                for c in range(start_col, len(lines[l])):
+                    if lines[l][c] == char:
+                        depth += 1
+                    elif lines[l][c] == match_char:
+                        depth -= 1
+                        if depth == 0:
+                            return {"ok": True, "line": l, "col": c}
+        else:
+            for l in range(line, -1, -1):
+                start_col = col if l == line else len(lines[l]) - 1
+                for c in range(start_col, -1, -1):
+                    if lines[l][c] == char:
+                        depth += 1
+                    elif lines[l][c] == match_char:
+                        depth -= 1
+                        if depth == 0:
+                            return {"ok": True, "line": l, "col": c}
+        return {"ok": False}
+    except Exception:
+        return {"ok": False}
+
+Api.treesitter_bracket = _sc022_treesitter_bracket
+# ===== /SC-LSP-022 =====
+# ===== SC-TS-023 =====
+# Tree-Sitter gercek entegrasyon + fallback
+
+_SC023_TS = None
+_SC023_TS_MODE = "yok"
+
+# 1) tree_sitter_languages dene (40+ dil, tek paket)
+try:
+    import tree_sitter_languages as _sc023_tsl
+    _SC023_TS = _sc023_tsl
+    _SC023_TS_MODE = "tree_sitter_languages"
+except ImportError:
+    _sc023_tsl = None
+
+# 2) Yoksa bireysel tree-sitter + dil paketleri dene
+if _SC023_TS is None:
+    try:
+        import tree_sitter as _sc023_ts_core
+        _SC023_TS = _sc023_ts_core
+        _SC023_TS_MODE = "tree_sitter_core"
+    except ImportError:
+        _sc023_ts_core = None
+
+# Monaco dil ID -> tree-sitter dil adi
+_SC023_LANG_MAP = {
+    "python": "python", "javascript": "javascript",
+    "typescript": "typescript", "tsx": "tsx", "jsx": "javascript",
+    "html": "html", "css": "css", "json": "json",
+    "rust": "rust", "go": "go", "java": "java",
+    "c": "c", "cpp": "cpp", "csharp": "c_sharp",
+    "php": "php", "ruby": "ruby", "lua": "lua",
+    "shell": "bash", "bash": "bash", "powershell": "powershell",
+    "yaml": "yaml", "markdown": "markdown", "sql": "sql",
+    "kotlin": "kotlin", "swift": "swift", "dart": "dart",
+    "scala": "scala", "haskell": "haskell", "elixir": "elixir",
+    "erlang": "erlang", "clojure": "clojure", "perl": "perl",
+    "r": "r", "toml": "toml", "ini": "ini", "xml": "xml",
+    "proto": "proto", "graphql": "graphql", "dockerfile": "dockerfile",
+    "makefile": "makefile", "cmake": "cmake", "zig": "zig",
+    "nim": "nim", "fortran": "fortran", "verilog": "verilog",
+    "vhdl": "vhdl", "bat": "batch", "scss": "css", "less": "css",
+    "plaintext": None,
+}
+
+# Dil -> sembol node tipleri
+_SC023_SYMBOL_NODES = {
+    "python": {
+        "function": ["function_definition"],
+        "class": ["class_definition"],
+        "variable": ["assignment"],
+        "import": ["import_statement", "import_from_statement"],
+    },
+    "javascript": {
+        "function": ["function_declaration", "arrow_function",
+                      "function_expression", "method_definition"],
+        "class": ["class_declaration"],
+        "variable": ["variable_declaration", "lexical_declaration"],
+        "import": ["import_statement"],
+    },
+    "typescript": {
+        "function": ["function_declaration", "arrow_function",
+                      "function_expression", "method_definition"],
+        "class": ["class_declaration"],
+        "variable": ["variable_declaration", "lexical_declaration"],
+        "import": ["import_statement"],
+        "interface": ["interface_declaration"],
+        "type": ["type_alias_declaration"],
+        "enum": ["enum_declaration"],
+    },
+    "go": {
+        "function": ["function_declaration", "method_declaration"],
+        "class": ["type_declaration"],
+        "variable": ["var_declaration", "const_declaration"],
+        "import": ["import_declaration"],
+    },
+    "rust": {
+        "function": ["function_item"],
+        "class": ["struct_item", "enum_item", "trait_item", "impl_item"],
+        "variable": ["let_declaration"],
+        "import": ["use_declaration"],
+    },
+    "java": {
+        "function": ["method_declaration", "constructor_declaration"],
+        "class": ["class_declaration", "interface_declaration",
+                   "enum_declaration"],
+        "variable": ["field_declaration", "local_variable_declaration"],
+        "import": ["import_declaration"],
+    },
+    "c": {
+        "function": ["function_definition"],
+        "class": ["struct_specifier", "enum_specifier"],
+        "variable": ["declaration", "init_declarator"],
+    },
+    "cpp": {
+        "function": ["function_definition"],
+        "class": ["class_specifier", "struct_specifier"],
+        "variable": ["declaration", "init_declarator"],
+    },
+    "csharp": {
+        "function": ["method_declaration"],
+        "class": ["class_declaration", "interface_declaration"],
+        "variable": ["field_declaration", "local_declaration_statement"],
+    },
+    "ruby": {
+        "function": ["method"],
+        "class": ["class", "module"],
+        "variable": ["assignment"],
+    },
+    "php": {
+        "function": ["function_definition", "method_declaration"],
+        "class": ["class_declaration", "interface_declaration"],
+        "variable": ["expression_statement"],
+    },
+    "lua": {
+        "function": ["function_declaration", "function_definition"],
+        "variable": ["variable_declaration", "assignment_statement"],
+    },
+    "shell": {
+        "function": ["function_definition"],
+        "variable": ["variable_assignment"],
+    },
+    "bash": {
+        "function": ["function_definition"],
+        "variable": ["variable_assignment"],
+    },
+}
+
+_SC023_parser_cache = {}
+
+
+def _sc023_get_parser(lang):
+    ts_lang = _SC023_LANG_MAP.get(lang)
+    if not ts_lang:
+        return None
+    if ts_lang in _SC023_parser_cache:
+        return _SC023_parser_cache[ts_lang]
+    try:
+        if _SC023_TS_MODE == "tree_sitter_languages":
+            p = _SC023_TS.get_parser(ts_lang)
+            _SC023_parser_cache[ts_lang] = p
+            return p
+        elif _SC023_TS_MODE == "tree_sitter_core":
+            # Bireysel dil paketleri: tree_sitter_python vs.
+            mod_name = "tree_sitter_" + ts_lang.replace("-", "_")
+            try:
+                import importlib
+                mod = importlib.import_module(mod_name)
+                lang_obj = _sc023_ts_core.Language(mod.language())
+                p = _sc023_ts_core.Parser(lang_obj)
+                _SC023_parser_cache[ts_lang] = p
+                return p
+            except (ImportError, Exception):
+                return None
+    except Exception:
+        return None
+    return None
+
+
+def _sc023_extract_name(node, code_bytes):
+    for child in node.children:
+        if child.type in ("identifier", "name", "type_identifier",
+                          "property_identifier", "field_identifier"):
+            return code_bytes[child.start_byte:child.end_byte].decode(
+                "utf-8", "replace")
+    # İlk identifier'i bul
+    text = code_bytes[node.start_byte:node.end_byte].decode(
+        "utf-8", "replace")
+    import re as _re023
+    m = _re023.search(r"[A-Za-z_][A-Za-z0-9_]*", text)
+    return m.group(0) if m else None
+
+
+def _sc023_ts_parse(lang, code):
+    parser = _sc023_get_parser(lang)
+    if not parser:
+        return None
+    try:
+        code_bytes = code.encode("utf-8") if isinstance(code, str) else code
+        tree = parser.parse(code_bytes)
+        root = tree.root_node
+        ts_lang = _SC023_LANG_MAP.get(lang, lang)
+        node_map = _SC023_SYMBOL_NODES.get(ts_lang, {})
+        symbols = []
+        seen = set()
+
+        def walk(node, depth=0):
+            if depth > 20:
+                return
+            for sym_type, node_types in node_map.items():
+                if node.type in node_types:
+                    name = _sc023_extract_name(node, code_bytes)
+                    if name and name not in seen:
+                        seen.add(name)
+                        symbols.append({
+                            "name": name,
+                            "type": sym_type,
+                            "line": node.start_point[0] + 1,
+                            "col": node.start_point[1],
+                            "end_line": node.end_point[0] + 1,
+                            "kind": {"function": 12, "class": 5,
+                                     "variable": 13, "import": 2,
+                                     "interface": 11, "type": 22,
+                                     "enum": 13}.get(sym_type, 13),
+                        })
+            for child in node.children:
+                walk(child, depth + 1)
+
+        walk(root)
+        return {"ok": True, "engine": "tree-sitter",
+                "symbols": symbols, "error_count": root.error_count}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def _sc023_ast_parse(lang, code):
+    import re as _re023
+    symbols = []
+    if lang == "python":
+        try:
+            import ast as _ast023
+            tree = _ast023.parse(code)
+            for node in _ast023.walk(tree):
+                if isinstance(node, (_ast023.FunctionDef,
+                                     _ast023.AsyncFunctionDef)):
+                    symbols.append({"name": node.name, "type": "function",
+                                    "line": node.lineno, "col": node.col_offset,
+                                    "end_line": getattr(node, "end_lineno", node.lineno),
+                                    "kind": 12})
+                elif isinstance(node, _ast023.ClassDef):
+                    symbols.append({"name": node.name, "type": "class",
+                                    "line": node.lineno, "col": node.col_offset,
+                                    "end_line": getattr(node, "end_lineno", node.lineno),
+                                    "kind": 5})
+                elif isinstance(node, _ast023.Assign):
+                    for t in node.targets:
+                        if isinstance(t, _ast023.Name):
+                            symbols.append({"name": t.id, "type": "variable",
+                                            "line": node.lineno, "col": node.col_offset,
+                                            "end_line": node.lineno, "kind": 13})
+            return {"ok": True, "engine": "python-ast",
+                    "symbols": symbols, "error_count": 0}
+        except SyntaxError as e:
+            return {"ok": False, "error": str(e), "symbols": []}
+    else:
+        # Regex fallback
+        patterns = [
+            (r"^\s*(?:def|function|fn|func|sub)\s+([A-Za-z_]\w*)", "function", 12),
+            (r"^\s*(?:class|struct|interface|enum|type)\s+([A-Za-z_]\w*)", "class", 5),
+            (r"^\s*(?:const|let|var|val)\s+([A-Za-z_]\w*)", "variable", 13),
+        ]
+        for pat, stype, kind in patterns:
+            for m in _re023.finditer(pat, code, _re023.M):
+                line = code[:m.start()].count("\n") + 1
+                symbols.append({"name": m.group(1), "type": stype,
+                                "line": line, "col": m.start(),
+                                "end_line": line, "kind": kind})
+        return {"ok": True, "engine": "regex",
+                "symbols": symbols, "error_count": 0}
+
+
+def _sc023_treesitter_parse(self, lang, code):
+    result = _sc023_ts_parse(lang, code)
+    if result and result.get("ok"):
+        return result
+    return _sc023_ast_parse(lang, code)
+
+
+def _sc023_treesitter_bracket(self, code, line, col):
+    parser = _sc023_get_parser("python")  # dil farketmez, genel
+    if parser:
+        try:
+            code_bytes = code.encode("utf-8") if isinstance(code, str) else code
+            tree = parser.parse(code_bytes)
+            # Brute force: node'u bul, parent'ta eslesen bracket'i ara
+        except Exception:
+            pass
+    # Manuel bracket matching (tum dillerde calisir)
+    try:
+        lines = code.split("\n")
+        if line >= len(lines):
+            return {"ok": False}
+        text = lines[line]
+        if col >= len(text):
+            return {"ok": False}
+        char = text[col]
+        opens = "([{"
+        closes = ")]}"
+        if char not in opens + closes:
+            if col + 1 < len(text) and text[col + 1] in opens + closes:
+                col += 1
+                char = text[col]
+            elif col > 0 and text[col - 1] in opens + closes:
+                col -= 1
+                char = text[col]
+            else:
+                return {"ok": False}
+        is_open = char in opens
+        match_char = closes[opens.index(char)] if is_open else opens[closes.index(char)]
+        depth = 0
+        if is_open:
+            for l in range(line, len(lines)):
+                sc = col if l == line else 0
+                for c in range(sc, len(lines[l])):
+                    if lines[l][c] == char:
+                        depth += 1
+                    elif lines[l][c] == match_char:
+                        depth -= 1
+                        if depth == 0:
+                            return {"ok": True, "line": l, "col": c}
+        else:
+            for l in range(line, -1, -1):
+                sc = col if l == line else len(lines[l]) - 1
+                for c in range(sc, -1, -1):
+                    if lines[l][c] == char:
+                        depth += 1
+                    elif lines[l][c] == match_char:
+                        depth -= 1
+                        if depth == 0:
+                            return {"ok": True, "line": l, "col": c}
+        return {"ok": False}
+    except Exception:
+        return {"ok": False}
+
+
+def _sc023_treesitter_durum(self):
+    return {
+        "ok": True,
+        "mode": _SC023_TS_MODE,
+        "available": _SC023_TS_MODE != "yok",
+        "langs": list(_SC023_LANG_MAP.keys()),
+    }
+
+
+Api.treesitter_parse = _sc023_treesitter_parse
+Api.treesitter_bracket = _sc023_treesitter_bracket
+Api.treesitter_durum = _sc023_treesitter_durum
+# ===== /SC-TS-023 =====
+# ===== SC-I18N-026 =====
+from .i18n import LANGS as _SC026_LANGS, get_translations as _sc026_get_tr
+
+def _sc026_dil_listesi(self):
+    return {"ok": True, "langs": _SC026_LANGS}
+
+def _sc026_dil_yukle(self, lang):
+    tr = _sc026_get_tr(lang)
+    return {"ok": True, "lang": lang, "t": tr}
+
+def _sc026_dil_degistir(self, lang):
+    self.settings["language"] = lang
+    try:
+        save_settings(self.settings)
+    except Exception:
+        pass
+    return {"ok": True, "lang": lang}
+
+Api.dil_listesi = _sc026_dil_listesi
+Api.dil_yukle = _sc026_dil_yukle
+Api.dil_degistir = _sc026_dil_degistir
+# ===== /SC-I18N-026 =====
+# ===== SC-TERM-028 =====
+# Harici terminal: schtasks/.cmd YOK, dogrudan Popen (liste) -> tirnak/path ezilmez.
+# target yoksa cd atmadan direkt terminal acar.
+import os as _sc028_os
+import shutil as _sc028_shutil
+import subprocess as _sc028_sp
+
+
+def _sc028_open_win(target):
+    wt = _sc028_shutil.which("wt")
+    pwsh = _sc028_shutil.which("pwsh") or _sc028_shutil.which("powershell")
+
+    # 1) Windows Terminal (en temiz)
+    if wt:
+        args = [wt]
+        if target:
+            args += ["-d", target]
+        try:
+            _sc028_sp.Popen(args)
+            return {"ok": True, "terminal": "Windows Terminal",
+                    "deelevated": False, "dir": target}
+        except Exception:
+            pass
+
+    # 2) PowerShell
+    if pwsh:
+        args = [pwsh, "-NoExit", "-NoLogo"]
+        if target:
+            safe = target.replace("'", "''")
+            args += ["-Command", "Set-Location -LiteralPath '" + safe + "'"]
+        try:
+            _sc028_sp.Popen(args)
+            return {"ok": True, "terminal": "PowerShell",
+                    "deelevated": False, "dir": target}
+        except Exception:
+            pass
+
+    # 3) CMD fallback
+    if target:
+        args = ["cmd", "/k", 'cd /d "' + target + '"']
+    else:
+        args = ["cmd"]
+    try:
+        _sc028_sp.Popen(args)
+        return {"ok": True, "terminal": "CMD",
+                "deelevated": False, "dir": target}
+    except Exception as e:
+        return {"ok": False, "hata": str(e)}
+
+
+def _sc028_open_unix(target):
+    term = None
+    for cand in (["x-terminal-emulator"], ["gnome-terminal"], ["konsole"],
+                 ["xfce4-terminal"], ["xterm"]):
+        if _sc028_shutil.which(cand[0]):
+            term = cand
+            break
+    if not term:
+        return {"ok": False, "hata": "Terminal bulunamadi"}
+    args = list(term)
+    if target:
+        if term[0] in ("gnome-terminal", "xfce4-terminal"):
+            args += ["--working-directory", target]
+        elif term[0] == "konsole":
+            args += ["--workdir", target]
+        else:
+            args += [target]
+    try:
+        _sc028_sp.Popen(args)
+        return {"ok": True, "terminal": term[0],
+                "deelevated": False, "dir": target}
+    except Exception as e:
+        return {"ok": False, "hata": str(e)}
+
+
+def _sc028_harici_terminal(self, path=None, *_rest):
+    try:
+        target = None
+        if path:
+            p = _sc028_os.path.abspath(str(path))
+            if _sc028_os.path.isdir(p):
+                target = p
+            elif _sc028_os.path.isfile(p):
+                target = _sc028_os.path.dirname(p)
+        if not target:
+            cp = getattr(self, "_cur_path", None)
+            if cp and _sc028_os.path.exists(cp):
+                target = cp if _sc028_os.path.isdir(cp) else _sc028_os.path.dirname(cp)
+        if not target:
+            cw = getattr(self, "_cwd", None)
+            if cw and _sc028_os.path.isdir(cw):
+                target = cw
+        if target and not _sc028_os.path.isdir(target):
+            target = None
+        if _sc028_os.name == "nt":
+            return _sc028_open_win(target)
+        return _sc028_open_unix(target)
+    except Exception as e:
+        return {"ok": False, "hata": str(e)}
+
+
+Api.harici_terminal_ac = _sc028_harici_terminal
+# ===== /SC-TERM-028 =====

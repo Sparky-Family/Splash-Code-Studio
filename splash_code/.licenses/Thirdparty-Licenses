@@ -1,0 +1,33 @@
+# Third-Party Licenses
+
+This project is licensed under the PolyShield License v1.0.
+See LICENSE for the full PolyShield License text.
+
+Splash Code Studio uses the following third-party components.
+These components are not owned by Sparky Family / Sparky.
+They are used under their original licenses.
+
+---
+
+## 1. Monaco Editor
+- What it is: Code editor used for the editor interface
+- Used in: editor / monaco - Local, no internet
+- License: MIT License
+- Copyright: 【entity-Microsoft Corporation¦canonical_name=Microsoft Corporation】
+- License file: monaco-editor-LICENSE.txt
+
+## 2. Xterm.js
+- What it is: Terminal emulator used for the integrated terminal
+- Used in: terminal / xterm - Local, no internet
+- License: MIT License
+- Copyright: Xterm.js Contributors
+- License file: xterm.js-LICENSE.txt
+
+---
+
+| Component | Owner | License |
+| Splash Code Studio | Sparky Family / Sparky | PolyShield License v1.0 |
+| Monaco Editor | 【entity-Microsoft Corporation¦canonical_name=Microsoft Corporation】 | MIT |
+| Xterm.js | Xterm.js Contributors | MIT |
+
+PY = IDE, HTML = GUI

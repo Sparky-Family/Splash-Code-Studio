@@ -207,6 +207,191 @@ body{font-family:var(--font-ui);font-size:13px;color:var(--text);background:var(
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px}
 </style>
+
+<!--SC-SPLIT-CSS-009-->
+<style>
+/* ===== SPLIT EDITOR CSS (Patch 009) ===== */
+
+/* Vertical split: editor + editor2 yan yana */
+#editor-container.split-v {
+    flex-direction: row !important;
+}
+#editor-container.split-v .editor-pane.primary {
+    flex: 1;
+    min-width: 0;
+}
+#editor-container.split-v .editor-pane.secondary {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    border-left: 2px solid var(--border);
+}
+
+/* Horizontal split: editor ustte, editor2 altta */
+#editor-container.horizontal {
+    flex-direction: column !important;
+}
+#editor-container.horizontal .editor-pane {
+    width: 100%;
+    min-height: 80px;
+}
+#editor-container.horizontal .editor-pane.secondary {
+    display: block;
+    border-top: 2px solid var(--border);
+    border-left: none;
+}
+#editor-container.vertical .editor-pane.secondary {
+    border-left: 2px solid var(--border);
+    border-top: none;
+}
+
+/* Split pane wrapper (header + editor) */
+#sc21SplitPane {
+    display: none;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+#sc21SplitPane.open {
+    display: flex;
+}
+
+/* Split header bar */
+#sc21SplitHeader {
+    height: 28px;
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    color: var(--dim);
+    gap: 6px;
+    flex-shrink: 0;
+}
+#sc21SplitHeader .icon-btn {
+    width: 22px;
+    height: 22px;
+}
+.sc21-badge {
+    background: var(--warning);
+    color: #000;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+/* Resize handle (suruklenebilir ayirici) */
+#scSplitHandle {
+    background: var(--border);
+    transition: background 0.15s;
+    z-index: 15;
+    flex-shrink: 0;
+}
+#scSplitHandle:hover,
+#scSplitHandle.dragging {
+    background: var(--accent);
+}
+#scSplitHandle.mode-v {
+    width: 5px;
+    cursor: ew-resize;
+}
+#scSplitHandle.mode-h {
+    height: 5px;
+    cursor: ns-resize;
+    width: 100%;
+}
+
+/* Editor2 icinde Monaco'nun duzgun boyutlanmasi */
+#editor2 {
+    width: 100%;
+    height: 100%;
+}
+#sc21SplitPane #editor2 {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+}
+
+/* Split acikken editor-container'in duzgun flex davranisi */
+#editor-container.split-v,
+#editor-container.horizontal {
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Secondary pane gizli varsayilan */
+.editor-pane.secondary {
+    display: none;
+}
+.editor-pane.secondary.open {
+    display: block;
+}
+
+/* Split tab bar (ikinci tab satiri) */
+#tabs2 {
+    height: 30px;
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--border);
+    display: none;
+    align-items: stretch;
+    padding: 0 4px;
+    gap: 1px;
+    flex-shrink: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+#tabs2::-webkit-scrollbar { display: none; }
+#tabs2.open { display: flex; }
+#tabs2 .tab {
+    height: 30px;
+    font-size: 11.5px;
+    flex: 0 0 140px;
+    width: 140px;
+    min-width: 100px;
+    max-width: 200px;
+}
+#tabs2 .tab.active::after {
+    background: var(--success);
+}
+#tabs2 .split-indicator {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 10px;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    border-right: 1px solid var(--border);
+}
+
+/* Ana tab bar'da split ayirici cizgi */
+#tabs .split-divider {
+    width: 2px;
+    background: var(--accent);
+    margin: 4px 2px;
+    border-radius: 1px;
+    flex-shrink: 0;
+}
+
+/* Run panelinde split bilgisi */
+#runPanel .split-info {
+    font-size: 10px;
+    color: var(--warning);
+    padding: 2px 8px;
+    background: rgba(210,153,34,0.1);
+    border-radius: 3px;
+    display: inline-block;
+}
+</style>
+<!--/SC-SPLIT-CSS-009-->
+
 </head>
 <body>
 
@@ -340,7 +525,7 @@ body{font-family:var(--font-ui);font-size:13px;color:var(--text);background:var(
       <div class="settings-section-title">Genel</div>
       <div class="settings-row"><div class="label">Proje klasörünü hatırla</div><div class="switch" id="setRememberProject" onclick="toggleSwitch(this)"></div></div>
       <div class="settings-row"><div class="label">Çalıştırmadan önce kaydet</div><div class="switch" id="setAutoSaveBeforeRun" onclick="toggleSwitch(this)"></div></div>
-      <div class="settings-row"><div class="label">Split yönü</div><select id="setSplitMode"><option value="none">Kapalı</option><option value="vertical">Dikey</option><option value="horizontal">Yatay</option></select></div>
+      
       <div class="settings-row"><div class="label">Çalıştırma yeri</div><select id="setRunMode"><option value="internal">Yerleşik panel</option><option value="external">Harici terminal</option></select></div>
       <div class="settings-row"><div class="label">Terminal modu</div><select id="setTerminalMode"><option value="internal">Yerleşik (iç)</option><option value="external">Harici (varsayılan terminal)</option></select></div>
       <div class="settings-row"><div class="label">LSP Desteği</div><div class="switch" id="setLsp" onclick="toggleSwitch(this)"></div></div>
@@ -1672,7 +1857,7 @@ function fillSettings() {
   setSwitch('setAutosave', s.autosave);
   setSwitch('setRememberSession', s.rememberSession);
   setSwitch('setShowWelcome', s.showWelcome);
-  document.getElementById('setSplitMode').value = s.splitMode || 'none';
+  var _sm=document.getElementById('setSplitMode');if(_sm)_sm.value=s.splitMode||'none';
   document.getElementById('setRunMode').value = s.runMode || 'internal';
   scSetVal('setTerminalMode', s.terminalMode || 'internal');
   setSwitch('setDiagnostics', s.diagnosticsEnabled !== false);
@@ -1708,7 +1893,7 @@ function ayarlariKaydet() {
   s.autosave = document.getElementById('setAutosave').classList.contains('on');
   s.rememberSession = document.getElementById('setRememberSession').classList.contains('on');
   s.showWelcome = document.getElementById('setShowWelcome').classList.contains('on');
-  s.splitMode = document.getElementById('setSplitMode').value;
+  var _smk=document.getElementById('setSplitMode');if(_smk)s.splitMode=_smk.value;
   s.runMode = document.getElementById('setRunMode').value;
   s.terminalMode = scGetVal('setTerminalMode', s.terminalMode || 'internal');
   s.diagnosticsEnabled = scOn('setDiagnostics', true);
@@ -2444,6 +2629,2116 @@ require(['vs/editor/editor.main'], function () {
 
 
 </body>
+<!--SC-FIX-028-->
+<style>
+/* __APP_VERSION__ kalabaligini gizle (topbar + welcome) */
+#brand .ver, .welcome-hero .version { display:none !important; }
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__SC028_FIX__) return;
+window.__SC028_FIX__ = true;
+/* Dil secicide "Turkce" -> "Türkçe" */
+var nameFixes = { tr:'Türkçe' };
+function fixLangDropdown(){
+    var dd = document.getElementById('scLangDropdown');
+    if(!dd || !dd.options || !dd.options.length) return false;
+    for(var i=0;i<dd.options.length;i++){
+        var v = dd.options[i].value;
+        if(nameFixes[v]) dd.options[i].textContent = nameFixes[v];
+    }
+    return true;
+}
+var tries=0;
+var t=setInterval(function(){
+    tries++;
+    if(tries>80){ clearInterval(t); return; }
+    if(fixLangDropdown()) clearInterval(t);
+},200);
+})();
+</script>
+<!--/SC-FIX-028-->
+
+<!--SC-FIX-027-->
+<script>
+(function(){
+'use strict';
+if(window.__SC027__) return;
+window.__SC027__ = true;
+
+/* ===== 1) Etkilesim kapisi: kullanici bir sey yapana kadar kilit ===== */
+window._scInteracted = false;
+function _scMarkInteracted(){
+    window._scInteracted = true;
+    ['pointerdown','mousedown','keydown','touchstart'].forEach(function(ev){
+        try{ window.removeEventListener(ev, _scMarkInteracted, {capture:true}); }catch(e){}
+    });
+}
+['pointerdown','mousedown','keydown','touchstart'].forEach(function(ev){
+    try{ window.addEventListener(ev, _scMarkInteracted, {capture:true}); }catch(e){}
+});
+
+/* ===== 2) LTR sabit: ceviriler layout'u ASLA ters cevirmesin ===== */
+function _scForceLTR(){
+    try{
+        document.documentElement.dir = 'ltr';
+        document.documentElement.setAttribute('dir','ltr');
+        if(document.body){ document.body.dir = 'ltr'; document.body.setAttribute('dir','ltr'); }
+    }catch(e){}
+}
+_scForceLTR();
+/* i18n uygulamasini sarmala: metin cevir ama yonu degistirme */
+if(typeof window.scApplyI18n === 'function'){
+    var _origApplyI18n = window.scApplyI18n;
+    window.scApplyI18n = function(){
+        var r;
+        try{ r = _origApplyI18n.apply(this, arguments); }catch(e){}
+        _scForceLTR();
+        return r;
+    };
+}
+/* herhangi bir sey dir'i degistirmeye kalkarsa hemen LTR'ye cevir */
+try{
+    var _scDirObs = new MutationObserver(function(muts){
+        for(var i=0;i<muts.length;i++){
+            if(muts[i].attributeName === 'dir' && document.documentElement.dir !== 'ltr'){
+                document.documentElement.dir = 'ltr';
+            }
+        }
+    });
+    _scDirObs.observe(document.documentElement, {attributes:true, attributeFilter:['dir']});
+}catch(e){}
+
+/* ===== 3) Acilis bildirimleri: ilk etkilesime kadar sessiz ===== */
+var _origToast = window.toast;
+window.toast = function(m, t, d){
+    if(!window._scInteracted){ return; } /* acilista sessiz */
+    if(_origToast){ return _origToast.apply(this, arguments); }
+};
+try{ window.scToast = window.toast; }catch(e){}
+/* acilista birikmis bildirimleri temizle */
+try{ if(window._notifications){ window._notifications.length = 0; } }catch(e){}
+try{ var _nl=document.getElementById('notifList'); if(_nl) _nl.innerHTML=''; }catch(e){}
+
+/* ===== 4) Acilista otomatik split KAPALI ===== */
+try{ if(window.settings){ window.settings.splitMode = 'none'; } }catch(e){}
+var _origSplitToggle = window.splitToggle;
+window.splitToggle = function(m){
+    /* kullanici henuz etkilesmediyse (oto-restore) split acma */
+    if(!window._scInteracted){ 
+        try{ if(window.settings) window.settings.splitMode='none'; }catch(e){}
+        return; 
+    }
+    if(_origSplitToggle){ return _origSplitToggle.apply(this, arguments); }
+};
+/* gec gelen ayar yuklemesi splitMode'u geri getirirse tekrar sifirla */
+setTimeout(function(){
+    try{ if(window.settings && !window._scInteracted) window.settings.splitMode='none'; }catch(e){}
+}, 1200);
+
+})();
+</script>
+<!--/SC-FIX-027-->
+
+<!--SC-I18N-026-->
+<style>
+#scLangSelect{position:fixed;bottom:28px;right:8px;z-index:9000;display:flex;align-items:center;gap:4px}
+#scLangSelect select{background:var(--bg-alt);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:5px;font-size:11px;font-family:var(--font-ui);outline:none;cursor:pointer}
+#scLangSelect select:hover{border-color:var(--accent)}
+#scLangSelect .sc-lang-icon{font-size:14px;cursor:default}
+</style>
+<div id="scLangSelect"><span class="sc-lang-icon">🌐</span><select id="scLangDropdown" onchange="scChangeLang(this.value)"></select></div>
+<script>
+(function(){
+'use strict';
+if(window.__SC026_I18N__)return;
+window.__SC026_I18N__=true;
+
+window._i18n={lang:'tr',t:{}};
+var LANG_NAMES={tr:'Turkce',en:'English',de:'Deutsch',fr:'Francais',es:'Espanol',it:'Italiano',pt:'Portugues',ru:'Russkiy',ja:'Nihongo',ko:'Hangugeo',zh:'Zhongwen',ar:'Al-Arabiyya'};
+
+/* t() - translation lookup */
+window.t=function(key,fallback){
+  var v=window._i18n.t[key];
+  return v!==undefined?v:(fallback!==undefined?fallback:key);
+};
+
+/* Apply translations to DOM */
+window.scApplyI18n=function(){
+  var tr=window._i18n.t;
+  if(!tr||!Object.keys(tr).length)return;
+  /* Topbar buttons by title */
+  var titleMap={
+    'Yeni (Ctrl+N)':tr.new,'Aç (Ctrl+O)':tr.open,'Klasör Aç':tr.openFolder,
+    'Kaydet (Ctrl+S)':tr.save,'Farklı Kaydet (Ctrl+Shift+S)':tr.saveAs,
+    'Çalıştır (F5)':tr.run,'Durdur':tr.stop,'Terminal (Ctrl+`)':tr.terminal,
+    'Tema Galerisi':tr.themeGallery,'Ayarlar':tr.settings,
+    'Komut Paleti (Ctrl+Shift+P)':tr.commandPalette,'Hızlı Dosya (Ctrl+P)':tr.quickOpen,
+    'AI Asistan':tr.aiAssistant,'Yeni Klasör':tr.newFolder,'Yenile':tr.refresh,
+    'Dikey Böl':tr.vertical,'Yatay Böl':tr.horizontal
+  };
+  document.querySelectorAll('[title]').forEach(function(el){
+    var old=el.getAttribute('title');
+    if(titleMap[old])el.setAttribute('title',titleMap[old]);
+  });
+  /* Sidebar headers */
+  document.querySelectorAll('.sidebar-header span').forEach(function(el){
+    var txt=el.textContent.trim();
+    if(txt==='Gezgin')el.textContent=tr.explorer||txt;
+    if(txt==='Git')el.textContent=tr.git||txt;
+  });
+  /* Status bar */
+  var sl=document.getElementById('statusLeft');
+  if(sl&&sl.textContent.trim()==='Hazır')sl.textContent=tr.ready||'Hazır';
+  /* AI panel */
+  var ah=document.querySelector('#aiHeader span:nth-child(2)');
+  if(ah&&ah.textContent.trim()==='AI Asistan')ah.textContent=tr.aiAssistant||'AI Asistan';
+  /* Terminal/Run headers */
+  document.querySelectorAll('#terminalHeader span:first-child, #runHeader span:first-child').forEach(function(el){
+    var txt=el.textContent.trim();
+    if(txt.indexOf('Terminal')>=0)el.childNodes[0].textContent=(tr.terminal||'Terminal')+' ';
+    if(txt==='Çıktı')el.textContent=tr.output||txt;
+  });
+  /* Settings modal title */
+  var smTitle=document.querySelector('#settingsOverlay .modal-header h2');
+  if(smTitle)smTitle.textContent=tr.settingsTitle||'Ayarlar';
+  /* Theme modal title */
+  var tmTitle=document.querySelector('#themeOverlay .modal-header h2');
+  if(tmTitle)tmTitle.textContent=tr.themeGallery||'Tema Galerisi';
+  /* Search modal */
+  var srTitle=document.querySelector('#searchOverlay .modal-header h2');
+  if(srTitle)srTitle.textContent=tr.search||'Projede Ara';
+  var srInput=document.getElementById('searchInput');
+  if(srInput)srInput.placeholder=tr.searchPlaceholder||'Aranacak metin...';
+  /* Quick open */
+  var qoInput=document.getElementById('quickOpenInput');
+  if(qoInput)qoInput.placeholder=tr.quickOpen||'Dosya ara...';
+  /* Command palette */
+  var cpInput=document.getElementById('cmdPaletteInput');
+  if(cpInput)cpInput.placeholder=tr.commandPalette||'Komut ara...';
+  /* Notification panel */
+  var nh=document.querySelector('#notifHeader span');
+  if(nh&&nh.textContent.trim()==='Bildirimler')nh.textContent=tr.notifications||'Bildirimler';
+  /* Git buttons */
+  document.querySelectorAll('#view-git .btn').forEach(function(b){
+    var txt=b.textContent.trim();
+    if(txt==='Commit')b.textContent=tr.commit||'Commit';
+    if(txt==='Push')b.textContent=tr.push||'Push';
+    if(txt==='Pull')b.textContent=tr.pull||'Pull';
+  });
+  var gm=document.getElementById('git-msg');
+  if(gm)gm.placeholder=tr.commitMsg||'Commit mesajı...';
+  /* AI quick buttons */
+  document.querySelectorAll('.ai-quick-btn').forEach(function(b){
+    var txt=b.textContent.trim();
+    if(txt==='Açıkla')b.textContent=tr.aiExplain||txt;
+    if(txt==='Refactor')b.textContent=tr.aiRefactor||txt;
+    if(txt==='Bug bul')b.textContent=tr.aiBug||txt;
+    if(txt==='Temizle')b.textContent=tr.aiClear||txt;
+  });
+  var aiInput=document.getElementById('aiInput');
+  if(aiInput)aiInput.placeholder=tr.aiPlaceholder||"AI'ya bir şey sor...";
+  /* Settings labels */
+  document.querySelectorAll('#settingsOverlay .settings-row .label').forEach(function(el){
+    var txt=el.textContent.trim();
+    var map={
+      'Proje klasörünü hatırla':tr.rememberProject,
+      'Çalıştırmadan önce kaydet':tr.saveBeforeRun,
+      'Split yönü':tr.splitDir,'Çalıştırma yeri':tr.runLocation,
+      'Terminal modu':tr.terminalMode,'LSP Desteği':tr.lspSupport,
+      'Tanılama (hata / uyarı)':tr.diagnostics,
+      'Kayıtta biçimlendir':tr.formatOnSave,'Kayıtta lint':tr.lintOnSave,
+      'Tree-Sitter (outline / parantez)':tr.treeSitter,
+      'Sağlayıcı':tr.aiProvider,'Yazı Tipi':tr.fontFamily,
+      'Font & Tab':tr.fontSize,'Minimap & Wrap':tr.minimap,
+      'Ligature & Satır No':tr.ligatures,
+      'Font boyutu':tr.terminalFontSize,'Geri kaydırma (satır)':tr.terminalScrollback,
+      'Özel Vurgu':tr.customAccent,'Dosya İkonları':tr.fileIcons,
+      'Otomatik kaydet':tr.autosave,'Oturumu hatırla':tr.rememberSession,
+      'Karşılama sayfası':tr.welcomePage
+    };
+    if(map[txt])el.textContent=map[txt];
+  });
+  /* Settings section titles */
+  document.querySelectorAll('#settingsOverlay .settings-section-title').forEach(function(el){
+    var txt=el.textContent.trim();
+    var map={'Genel':tr.general,'AI Asistan':tr.aiAssistant,'Editör':tr.editor,
+             'Terminal':tr.terminal,'Görünüm':tr.appearance,'Oturum':tr.session};
+    if(map[txt])el.textContent=map[txt];
+  });
+  /* Settings footer buttons */
+  document.querySelectorAll('#settingsOverlay .modal-footer .btn').forEach(function(b){
+    var txt=b.textContent.trim();
+    if(txt==='İptal')b.textContent=tr.cancel||txt;
+    if(txt==='Kaydet')b.textContent=tr.save||txt;
+  });
+  /* RTL for Arabic */
+  if(window._i18n.lang==='ar'){document.documentElement.dir='rtl';}
+  else{document.documentElement.dir='ltr';}
+};
+
+/* Language change */
+window.scChangeLang=function(lang){
+  var a=(window.pywebview&&window.pywebview.api)||null;
+  if(!a)return;
+  a.dil_yukle(lang).then(function(r){
+    if(r&&r.ok){
+      window._i18n.lang=r.lang;
+      window._i18n.t=r.t||{};
+      if(window.settings)window.settings.language=lang;
+      scApplyI18n();
+      if(a.dil_degistir)a.dil_degistir(lang);
+      try{toast((LANG_NAMES[lang]||lang)+' ✓','success',1500);}catch(e){}
+    }
+  });
+};
+
+/* Populate dropdown */
+function scInitLangDropdown(){
+  var dd=document.getElementById('scLangDropdown');
+  if(!dd)return;
+  dd.innerHTML='';
+  Object.keys(LANG_NAMES).forEach(function(code){
+    var opt=document.createElement('option');
+    opt.value=code;opt.textContent=LANG_NAMES[code];
+    dd.appendChild(opt);
+  });
+  var cur=(window.settings&&window.settings.language)||'tr';
+  dd.value=cur;
+}
+
+/* Load initial language */
+function scLoadInitial(){
+  var a=(window.pywebview&&window.pywebview.api)||null;
+  if(!a){setTimeout(scLoadInitial,500);return;}
+  var lang=(window.settings&&window.settings.language)||'tr';
+  a.dil_yukle(lang).then(function(r){
+    if(r&&r.ok){
+      window._i18n.lang=r.lang;
+      window._i18n.t=r.t||{};
+      scApplyI18n();
+    }
+    scInitLangDropdown();
+  }).catch(function(){scInitLangDropdown();});
+}
+setTimeout(scLoadInitial,2000);
+
+/* Re-apply on settings open (in case DOM was rebuilt) */
+var _origAyarlariAc=window.ayarlariAc;
+if(typeof _origAyarlariAc==='function'){
+  window.ayarlariAc=function(){
+    _origAyarlariAc();
+    setTimeout(scApplyI18n,100);
+  };
+}
+})();
+</script>
+<!--/SC-I18N-026-->
+
+<!--SC-DIALOG-025-->
+<style>
+/* === SC-025: Modern Dialog === */
+#scDialogOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:9500;align-items:center;justify-content:center;animation:scDialogFade .15s ease}
+#scDialogOverlay.open{display:flex}
+@keyframes scDialogFade{from{opacity:0}to{opacity:1}}
+@keyframes scDialogSlide{from{opacity:0;transform:translateY(-12px) scale(.97)}to{opacity:1;transform:none}}
+#scDialogBox{width:440px;max-width:calc(100vw - 40px);background:var(--bg-alt);border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;animation:scDialogSlide .18s ease}
+#scDialogHeader{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+#scDialogIcon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+#scDialogIcon.info{background:rgba(47,129,247,.15);color:var(--accent)}
+#scDialogIcon.warn{background:rgba(210,153,34,.15);color:var(--warning)}
+#scDialogIcon.error{background:rgba(248,81,73,.15);color:var(--error)}
+#scDialogIcon.success{background:rgba(63,185,80,.15);color:var(--success)}
+#scDialogTitle{font-size:13.5px;font-weight:600;color:var(--text)}
+#scDialogBody{padding:16px 18px}
+#scDialogMsg{font-size:12.5px;line-height:1.6;color:var(--text);white-space:pre-wrap;word-break:break-word}
+#scDialogInput{width:100%;margin-top:12px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12.5px;font-family:var(--font-ui);outline:none;transition:border-color .15s}
+#scDialogInput:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,129,247,.12)}
+#scDialogFooter{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border);background:var(--bg)}
+#scDialogFooter .btn{min-width:80px;justify-content:center}
+</style>
+<div id="scDialogOverlay">
+<div id="scDialogBox">
+<div id="scDialogHeader"><div id="scDialogIcon" class="info">💬</div><div id="scDialogTitle">Bildirim</div></div>
+<div id="scDialogBody"><div id="scDialogMsg"></div><input id="scDialogInput" type="text" style="display:none" autocomplete="off" spellcheck="false"></div>
+<div id="scDialogFooter"></div>
+</div>
+</div>
+<script>
+(function(){
+'use strict';
+if(window.__SC025__)return;
+window.__SC025__=true;
+
+var _overlay=document.getElementById('scDialogOverlay');
+var _box=document.getElementById('scDialogBox');
+var _icon=document.getElementById('scDialogIcon');
+var _title=document.getElementById('scDialogTitle');
+var _msg=document.getElementById('scDialogMsg');
+var _input=document.getElementById('scDialogInput');
+var _footer=document.getElementById('scDialogFooter');
+var _resolveFn=null;
+
+function _close(result){
+    _overlay.classList.remove('open');
+    _resolveFn=null;
+    return result;
+}
+
+function _show(opts){
+    var type=opts.type||'info';
+    var icons={info:'💬',warn:'⚠️',error:'❌',success:'✅',confirm:'❓',prompt:'✏️',delete:'🗑️'};
+    _icon.className='';
+    _icon.classList.add(type==='confirm'||type==='prompt'||type==='delete'?'warn':type);
+    _icon.textContent=icons[type]||icons.info;
+    _title.textContent=opts.title||'Splash Code Studio';
+    _msg.textContent=opts.message||'';
+    _footer.innerHTML='';
+    if(opts.showInput){
+        _input.style.display='block';
+        _input.value=opts.defaultValue||'';
+        _input.placeholder=opts.placeholder||'';
+        setTimeout(function(){_input.focus();_input.select();},80);
+    }else{
+        _input.style.display='none';
+    }
+    var btns=opts.buttons||[{label:'Tamam',value:true,primary:true}];
+    btns.forEach(function(b){
+        var el=document.createElement('button');
+        el.className='btn'+(b.primary?' primary':'')+(b.danger?' danger':'');
+        el.textContent=b.label;
+        el.onclick=function(){
+            var val=b.value;
+            if(opts.showInput&&val===true)val=_input.value;
+            _overlay.classList.remove('open');
+            if(_resolveFn)_resolveFn(val);
+            _resolveFn=null;
+        };
+        _footer.appendChild(el);
+    });
+    _overlay.classList.add('open');
+    return new Promise(function(res){_resolveFn=res;});
+}
+
+/* === Public API === */
+window.scAlert=function(msg,title){
+    return _show({type:'info',title:title||'Bilgi',message:msg,buttons:[{label:'Tamam',value:true,primary:true}]});
+};
+window.scConfirm=function(msg,title,type){
+    return _show({type:type||'confirm',title:title||'Onay',message:msg,buttons:[
+        {label:'İptal',value:false},
+        {label:'Evet',value:true,primary:true}
+    ]});
+};
+window.scConfirmDanger=function(msg,title){
+    return _show({type:'delete',title:title||'Sil',message:msg,buttons:[
+        {label:'İptal',value:false},
+        {label:'Sil',value:true,danger:true}
+    ]});
+};
+window.scPrompt=function(msg,title,defaultValue,placeholder){
+    return _show({type:'prompt',title:title||'Giriş',message:msg,showInput:true,defaultValue:defaultValue||'',placeholder:placeholder||'',buttons:[
+        {label:'İptal',value:false},
+        {label:'Tamam',value:true,primary:true}
+    ]});
+};
+
+/* === Enter/Escape keyboard === */
+document.addEventListener('keydown',function(e){
+    if(!_overlay.classList.contains('open'))return;
+    if(e.key==='Escape'){
+        e.preventDefault();e.stopPropagation();
+        _overlay.classList.remove('open');
+        if(_resolveFn)_resolveFn(false);
+        _resolveFn=null;
+    }
+    if(e.key==='Enter'&&_input.style.display!=='none'){
+        e.preventDefault();e.stopPropagation();
+        _overlay.classList.remove('open');
+        if(_resolveFn)_resolveFn(_input.value);
+        _resolveFn=null;
+    }
+});
+
+/* === Override native confirm/prompt/alert in known call sites === */
+
+/* sekmeKapat */
+var _origSekmeKapat=window.sekmeKapat;
+window.sekmeKapat=function(id,force){
+    var i=window.tabs.findIndex(function(t){return t.id===id;});
+    if(i<0)return;
+    var tab=window.tabs[i];
+    if(!force&&tab.dirty&&tab.path){
+        scConfirm('Kaydedilmemiş değişiklikler var.\nSekme kapatılsın mı?','Sekmeyi Kapat').then(function(ok){
+            if(ok)_doClose(id,i);
+        });
+    }else{
+        _doClose(id,i);
+    }
+};
+function _doClose(id,i){
+    var tab=window.tabs[i];
+    if(tab.model)tab.model.dispose();
+    window.tabs.splice(i,1);
+    if(window.tabs.length===0){activeTabId=null;showWelcome();}
+    else if(activeTabId===id){aktifSekmeYap(window.tabs[Math.max(0,i-1)].id);}
+    scheduleTabRender();
+}
+
+/* treeAction - delete */
+var _origTreeAction=window.treeAction;
+window.treeAction=function(action){
+    if(action==='delete'){
+        document.getElementById('contextMenu').classList.remove('open');
+        var p=selectedPath;if(!p||!p.path)return;
+        scConfirmDanger('Silinsin mi?\n'+p.path,'Dosyayı Sil').then(function(ok){
+            if(!ok)return;
+            var a=scApi();if(!a)return;
+            a.dosya_sil(p.path).then(function(r){
+                if(r.ok){toast('Silindi','success');refreshTree();}
+                else toast(r.hata||'Hata','error');
+            });
+        });
+        return;
+    }
+    if(action==='newfile'){
+        document.getElementById('contextMenu').classList.remove('open');
+        var p2=selectedPath;if(!p2||!p2.path)return;
+        scPrompt('Dosya adı:','Yeni Dosya','','ornek.py').then(function(nm){
+            if(!nm)return;
+            var a=scApi();if(!a)return;
+            a.yeni_dosya(p2.path,nm).then(function(r){
+                if(r.ok){toast('Oluşturuldu','success');refreshTree();}
+                else toast(r.hata||'Hata','error');
+            });
+        });
+        return;
+    }
+    if(action==='newfolder'){
+        document.getElementById('contextMenu').classList.remove('open');
+        var p3=selectedPath;if(!p3||!p3.path)return;
+        scPrompt('Klasör adı:','Yeni Klasör','','klasor').then(function(nm){
+            if(!nm)return;
+            var a=scApi();if(!a)return;
+            a.yeni_klasor(p3.path,nm).then(function(r){
+                if(r.ok){toast('Oluşturuldu','success');refreshTree();}
+                else toast(r.hata||'Hata','error');
+            });
+        });
+        return;
+    }
+    if(action==='rename'){
+        document.getElementById('contextMenu').classList.remove('open');
+        var p4=selectedPath;if(!p4||!p4.path)return;
+        var oldName=p4.path.split(/[\\/]/).pop();
+        scPrompt('Yeni ad:','Yeniden Adlandır',oldName).then(function(nm){
+            if(!nm||nm===oldName)return;
+            var parent=p4.path.substring(0,p4.path.length-oldName.length);
+            var np=parent+nm;
+            var a=scApi();if(!a)return;
+            a.dosya_yeniden_adlandir(p4.path,np).then(function(r){
+                if(r.ok){toast('Yeniden adlandırıldı','success');refreshTree();}
+                else toast(r.hata||'Hata','error');
+            });
+        });
+        return;
+    }
+    if(_origTreeAction)_origTreeAction(action);
+};
+
+/* dosyaYukle - large file warning */
+var _origDosyaYukle=window.dosyaYukle;
+window.dosyaYukle=function(y){
+    var m=findTabByPath(y.path);if(m){aktifSekmeYap(m.id);return;}
+    var max=window.settings.largeFileWarnSize||(5*1024*1024);
+    if(y.content&&y.content.length>max){
+        var kb=(y.content.length/1024).toFixed(1);
+        scConfirm('Bu dosya çok büyük ('+kb+' KB).\nAçılsın mı?','Büyük Dosya','warn').then(function(ok){
+            if(ok)_doDosyaYukle(y);
+        });
+    }else{
+        _doDosyaYukle(y);
+    }
+};
+function _doDosyaYukle(y){
+    yeniSekme({path:y.path,name:y.name,lang:y.lang,content:y.content,hash:y.hash});
+    if(!window.recentFiles.includes(y.path)){
+        window.recentFiles.unshift(y.path);
+        window.recentFiles=window.recentFiles.slice(0,20);
+    }
+}
+
+/* sc23SearchReplace - confirm */
+var _origSearchReplace=window.sc23SearchReplace;
+window.sc23SearchReplace=async function(){
+    try{
+        var q=prompt__sc23('Ara:');if(!q)return;
+        var rep=prompt__sc23('Değiştir (boş = sadece ara):','')||'';
+        var a=scApi();if(!a)return;
+        if(rep){
+            var ok=await scConfirm('"'+q+'" → "'+rep+'"\nTüm projede değiştirilsin mi?','Ara-Değiştir','warn');
+            if(!ok)return;
+            var r=await a.projede_degistir(q,rep,window._cwd||'',false,false);
+            toast(r&&r.ok?(r.replacements+' değişim, '+r.changed_files+' dosya'):'Değiştirme başarısız','success');
+        }else{
+            var r2=await a.projede_ara(q,window._cwd||'');
+            toast((r2||[]).length+' sonuç bulundu');
+        }
+        gitYenile();
+    }catch(e){}
+};
+function prompt__sc23(msg,def){
+    return new Promise(function(res){
+        scPrompt(msg,'Ara-Değiştir',def||'').then(res);
+    });
+}
+
+/* sc23Rename */
+var _origRename=window.sc23Rename;
+window.sc23Rename=async function(){
+    try{
+        var tb=aktifTab();if(!tb||!tb.path)return scToast('Önce bir dosya aç','error');
+        var name=await scPrompt('Yeni isim:','Yeniden Adlandır');
+        if(!name)return;
+        var a=scApi();var pos=editor.getPosition();
+        var uri='file:///'+tb.path.replace(/\\/g,'/');
+        var r=await a.lsp_rename(tb.lang||'python',uri,edGet(),pos.lineNumber-1,pos.column-1,name);
+        if(r&&r.ok&&r.edits&&r.edits.changes){
+            scToast('Rename uygulandı','success');
+            var changes=r.edits.changes;var firstUri=Object.keys(changes)[0];
+            if(firstUri){
+                var txt=edGet();var edits=changes[firstUri].slice().sort(function(x,y){return(y.range.start.line-x.range.start.line)||(y.range.start.character-x.range.start.character);});
+                var lines=txt.split('\n');
+                for(var i=0;i<edits.length;i++){
+                    var e=edits[i];var s=e.range.start,en=e.range.end;
+                    if(s.line===en.line){lines[s.line]=lines[s.line].slice(0,s.character)+e.newText+lines[s.line].slice(en.character);}
+                }
+                edSet(lines.join('\n'));
+            }
+        }else scToast('Rename için LSP bulunamadı','error');
+    }catch(e){scToast('Rename hatası','error');}
+};
+
+/* sc23GitDiff - alert fallback */
+var _origGitDiff=window.sc23GitDiff;
+window.sc23GitDiff=async function(){
+    try{
+        var a=scApi();if(!a)return;
+        var r=await a.git_diff('');
+        var diff=(r&&r.diff)||'Değişiklik yok';
+        var w=window.open('','_blank');
+        if(w){w.document.write('<pre style="white-space:pre-wrap;font-family:monospace;padding:16px;background:#0d1117;color:#e6edf3">'+diff.replace(/</g,'&lt;')+'</pre>');}
+        else{scAlert(diff.slice(0,3000),'Git Diff');}
+    }catch(e){}
+};
+
+/* Override native window.confirm/prompt/alert globally as fallback */
+window.confirm=function(msg){
+    scConfirm(msg);
+    return true; /* non-blocking fallback */
+};
+window.alert=function(msg){
+    scAlert(msg);
+};
+window.prompt=function(msg,def){
+    /* Can't be sync, return def */
+    scPrompt(msg,'Giriş',def||'');
+    return def||'';
+};
+
+})();
+</script>
+<!--/SC-DIALOG-025-->
+
+<!--SC-KIND-024-->
+<script>
+(function(){
+'use strict';
+if(window.__SC024__) return;
+window.__SC024__=true;
+
+/* ---------- dil sozlukleri ---------- */
+var KW={
+python:'def class import from as return yield if elif else for while break continue pass try except finally with async await lambda global nonlocal assert del raise in is not and or match case'.split(' '),
+javascript:'function const let var if else for while do switch case break continue return new this class extends super async await try catch finally throw typeof instanceof of delete void yield static get set export import default from as'.split(' '),
+typescript:'function const let var if else for while return new this class extends interface type enum namespace declare readonly private public protected abstract implements as any unknown never void export import default from as keyof infer'.split(' '),
+go:'func type struct interface map chan go defer select range package import var const if else for switch case break continue return fallthrough goto'.split(' '),
+rust:'fn let mut const static struct enum trait impl pub mod use crate match if else loop while for break continue return as in where unsafe async await move ref type dyn'.split(' '),
+java:'public private protected class interface extends implements static final abstract void new this super return if else for while do switch case break continue try catch finally throw throws package import synchronized volatile transient enum record'.split(' '),
+c:'if else for while do switch case break continue return goto const static extern register volatile typedef struct union enum sizeof inline restrict'.split(' '),
+cpp:'class public private protected virtual override final template typename namespace using new delete this try catch throw if else for while do switch case break continue return const static auto constexpr noexcept decltype friend operator concept requires'.split(' '),
+csharp:'public private protected internal class interface struct enum namespace using static readonly const void new this base return if else for foreach while do switch case break continue try catch finally throw async await var sealed override virtual abstract partial record'.split(' '),
+php:'function class interface trait extends implements public private protected static const var echo print return if else elseif for foreach while do switch case break continue new try catch finally throw namespace use abstract final yield fn match'.split(' '),
+ruby:'def class module end if else elsif unless while until for do begin rescue ensure raise return yield require require_relative attr_accessor attr_reader attr_writer self nil'.split(' '),
+lua:'function local end if then else elseif for while repeat until do return break and or not in goto'.split(' '),
+shell:'if then else elif fi for while do done case esac function return exit in select until time'.split(' '),
+powershell:'function param if else elseif foreach for while do switch break continue return try catch finally throw begin process end filter'.split(' '),
+sql:'select from where insert into values update set delete create table alter drop index join inner left right outer full on group by order having limit offset union all distinct as and or not null primary key foreign references'.split(' ')
+};
+var CN={
+python:['True','False','None','NotImplemented','Ellipsis','__name__','__main__','__file__','__doc__'],
+javascript:['true','false','null','undefined','NaN','Infinity'],
+typescript:['true','false','null','undefined','NaN','Infinity'],
+go:['true','false','nil','iota'],
+rust:['true','false','Some','None','Ok','Err'],
+java:['true','false','null'],
+csharp:['true','false','null'],
+php:['true','false','null','TRUE','FALSE','NULL'],
+ruby:['true','false','nil','self'],
+lua:['true','false','nil'],
+c:['NULL','true','false'],
+cpp:['nullptr','true','false','NULL']
+};
+var FN={
+python:'print input len range str int float list dict set tuple bool type isinstance issubclass getattr setattr hasattr delattr open enumerate zip map filter sorted reversed sum min max abs round pow divmod hex oct bin chr ord repr hash id iter next all any callable vars dir globals locals super format compile eval exec'.split(' '),
+javascript:'console log error warn info table setTimeout setInterval clearTimeout clearInterval parseInt parseFloat isNaN isFinite fetch alert confirm prompt require fetch structuredClone atob btoa encodeURIComponent decodeURIComponent'.split(' '),
+typescript:'console log setTimeout setInterval parseInt parseFloat fetch require'.split(' '),
+go:'make append len cap new delete close panic recover copy print println complex real imag'.split(' '),
+rust:'println print format vec panic assert assert_eq unwrap expect clone to_string into from iter collect map filter fold'.split(' '),
+java:'println print printf valueOf toString equals hashCode format valueOf parseInt parseDouble'.split(' '),
+csharp:'WriteLine Write Console String Int32 Parse ToString Format'.split(' '),
+php:'echo print_r var_dump isset unset empty count array_map array_filter array_keys array_values implode explode strlen substr strpos str_replace json_encode json_decode'.split(' '),
+ruby:'puts print p len times each map select reject reduce inject'.split(' '),
+lua:'print pairs ipairs type tonumber tostring setmetatable getmetatable table string math'.split(' '),
+shell:'echo printf read cd ls mkdir rm cp mv cat grep sed awk export source test'.split(' '),
+powershell:'Write-Host Write-Output Get-ChildItem Set-Location New-Item Remove-Item Get-Content Set-Content'.split(' ')
+};
+
+function sc024Kind(sg, lang){
+  var K=monaco.languages.CompletionItemKind;
+  var raw=sg.kind;
+  if(raw && raw!==K.Text && raw!==0) return raw;
+  var lbl=(sg.label && typeof sg.label==='object') ? (sg.label.label||'') : String(sg.label||'');
+  var det=String(sg.detail||'');
+  if(sg.label && typeof sg.label==='object'){
+    det += ' ' + (sg.label.detail||'') + ' ' + (sg.label.description||'');
+  }
+  det=det.toLowerCase();
+  if(det){
+    if(det.indexOf('method')>=0) return K.Method;
+    if(det.indexOf('function')>=0||det.indexOf('builtin')>=0&&FN[lang]&&FN[lang].indexOf(lbl)>=0) return K.Function;
+    if(det.indexOf('class')>=0) return K.Class;
+    if(det.indexOf('interface')>=0) return K.Interface;
+    if(det.indexOf('struct')>=0) return K.Struct;
+    if(det.indexOf('enum')>=0) return K.Enum;
+    if(det.indexOf('module')>=0||det.indexOf('package')>=0) return K.Module;
+    if(det.indexOf('property')>=0) return K.Property;
+    if(det.indexOf('field')>=0) return K.Field;
+    if(det.indexOf('constant')>=0) return K.Constant;
+    if(det.indexOf('keyword')>=0) return K.Keyword;
+    if(det.indexOf('type')>=0) return K.TypeParameter;
+    if(det.indexOf('variable')>=0||det.indexOf('parameter')>=0||det.indexOf('local')>=0) return K.Variable;
+  }
+  if((CN[lang]||[]).indexOf(lbl)>=0) return K.Constant;
+  if((KW[lang]||[]).indexOf(lbl)>=0) return K.Keyword;
+  if((FN[lang]||[]).indexOf(lbl)>=0) return K.Function;
+  if(/^__[a-z0-9_]+__$/.test(lbl)) return K.Keyword;
+  if(/^[A-Z][A-Z0-9_]{2,}$/.test(lbl)) return K.Constant;
+  if(/^[A-Z][A-Za-z0-9]*$/.test(lbl)) return K.Class;
+  if(/^(self|cls|this)$/.test(lbl)) return K.Keyword;
+  return K.Variable;
+}
+
+function sc024Fix(res, lang){
+  try{
+    if(!res||!res.suggestions) return res;
+    for(var i=0;i<res.suggestions.length;i++){
+      res.suggestions[i].kind = sc024Kind(res.suggestions[i], lang);
+    }
+  }catch(e){}
+  return res;
+}
+
+/* ---------- convertCompletion (LSP yolu) ---------- */
+window.convertCompletion=function(item){
+  var K=monaco.languages.CompletionItemKind;
+  var map={1:K.Text,2:K.Method,3:K.Function,4:K.Constructor,5:K.Field,6:K.Variable,
+    7:K.Class,8:K.Interface,9:K.Module,10:K.Property,11:K.Unit,12:K.Value,13:K.Enum,
+    14:K.Keyword,15:K.Snippet,16:K.Color,17:K.File,18:K.Reference,19:K.Folder,
+    20:K.EnumMember,21:K.Constant,22:K.Struct,23:K.Event,24:K.Operator,25:K.TypeParameter};
+  var doc=item.documentation;
+  if(doc && typeof doc==='object') doc=doc.value;
+  var lbl,det;
+  if(item.label && typeof item.label==='object'){
+    lbl=item.label.label||''; det=item.label.detail||item.label.description||null;
+  } else { lbl=String(item.label||''); det=null; }
+  var sg={
+    label:{label:lbl, detail:det||item.detail||undefined},
+    kind:map[item.kind]||K.Text,
+    insertText:item.insertText||(item.textEdit&&item.textEdit.newText)||lbl,
+    detail:item.detail||det||undefined,
+    documentation:doc,
+    sortText:item.sortText||lbl,
+    filterText:item.filterText||lbl
+  };
+  return sg;
+};
+
+/* ---------- registerLspProviders: TAM DEGISTIRME ---------- */
+var _sc024Disp={};
+window.registerLspProviders=function(lang){
+  if(!window.monaco||!lang) return;
+  if(_sc024Disp[lang]) return;
+  _sc024Disp[lang]=[];
+  try{ if(typeof lspRegistered!=='undefined') lspRegistered.add(lang); }catch(e){}
+
+  var supports=false;
+  try{ supports = (typeof LSP_MONACO_IDS!=='undefined') && LSP_MONACO_IDS.indexOf(lang)>=0; }catch(e){}
+
+  var d1=monaco.languages.registerCompletionItemProvider(lang,{
+    triggerCharacters:['.',' ','"',"'",'/',':','=','(','[','{','>','@'],
+    provideCompletionItems:function(model,position){
+      var a=(window.pywebview&&window.pywebview.api)||null;
+      if(!a) return {suggestions:[]};
+      var uri;
+      try{ uri=scModelUri(model); }catch(e){ uri=model.uri.toString(); }
+      var text=model.getValue();
+      var line=position.lineNumber-1, col=position.column-1;
+      var useLsp = supports && window.settings && window.settings.lspEnabled;
+      var p = useLsp
+        ? a.lsp_complete(lang,uri,text,line,col).then(function(r){
+            if(r && r.items && r.items.length){
+              return {suggestions:r.items.map(function(it){
+                var sg=window.convertCompletion(it);
+                sg.kind=sc024Kind(sg,lang);
+                return sg;
+              })};
+            }
+            return null;
+          }).catch(function(){ return null; })
+        : Promise.resolve(null);
+      return p.then(function(res){
+        if(res) return sc024Fix(res,lang);
+        return a.fake_complete(lang,text,line,col).then(function(r2){
+          var out=(r2||[]).map(function(x){
+            var sg={
+              label:x.label,
+              kind:x.kind||0,
+              insertText:x.insertText||x.label,
+              detail:x.detail||undefined,
+              sortText:x.sortText||('z'+x.label),
+              filterText:x.label
+            };
+            sg.kind=sc024Kind(sg,lang);
+            return sg;
+          });
+          return {suggestions:out};
+        }).catch(function(){ return {suggestions:[]}; });
+      });
+    }
+  });
+  _sc024Disp[lang].push(d1);
+
+  if(!supports) return;
+
+  var d2=monaco.languages.registerHoverProvider(lang,{
+    provideHover:function(model,position){
+      var a=(window.pywebview&&window.pywebview.api)||null;
+      if(!a) return null;
+      return a.lsp_hover(lang,scModelUri(model),model.getValue(),
+        position.lineNumber-1,position.column-1).then(function(r){
+        if(!r||!r.content) return null;
+        return {contents:[{value:r.content}]};
+      }).catch(function(){ return null; });
+    }
+  });
+  var d3=monaco.languages.registerDefinitionProvider(lang,{
+    provideDefinition:function(model,position){
+      var a=(window.pywebview&&window.pywebview.api)||null;
+      if(!a) return null;
+      return a.lsp_definition(lang,scModelUri(model),model.getValue(),
+        position.lineNumber-1,position.column-1).then(function(r){
+        if(!r||!r.location) return null;
+        return {uri:monaco.Uri.parse(r.location.uri), range:r.location.range};
+      }).catch(function(){ return null; });
+    }
+  });
+  _sc024Disp[lang].push(d2);
+  _sc024Disp[lang].push(d3);
+};
+
+/* ---------- yeniden bagla ---------- */
+function sc024Rebind(){
+  if(!window.monaco||!window.editor) return false;
+  try{ if(typeof lspRegistered!=='undefined') lspRegistered.clear(); }catch(e){}
+  Object.keys(_sc024Disp).forEach(function(k){
+    _sc024Disp[k].forEach(function(d){ try{ d.dispose(); }catch(e){} });
+  });
+  _sc024Disp={};
+  var langs={};
+  (window.tabs||[]).forEach(function(t){ langs[t.lang||'python']=1; });
+  if(!Object.keys(langs).length) langs['python']=1;
+  Object.keys(langs).forEach(function(l){
+    try{ window.registerLspProviders(l); }catch(e){}
+  });
+  return true;
+}
+
+var _sc024Tries=0;
+var _sc024T=setInterval(function(){
+  _sc024Tries++;
+  if(_sc024Tries>200){ clearInterval(_sc024T); return; }
+  if(sc024Rebind()){
+    clearInterval(_sc024T);
+    try{ toast('Tamamlama ikonlari duzeltildi','success',2200); }catch(e){}
+  }
+},150);
+
+/* sekme degisince de bagla */
+var _sc024Aktif=window.aktifSekmeYap;
+if(typeof _sc024Aktif==='function'){
+  window.aktifSekmeYap=function(id){
+    var r=_sc024Aktif.apply(this,arguments);
+    try{
+      var tb=(window.tabs||[]).find(function(t){return t.id===id;});
+      if(tb && tb.lang) window.registerLspProviders(tb.lang);
+    }catch(e){}
+    return r;
+  };
+}
+})();
+</script>
+<!--/SC-KIND-024-->
+
+<!--SC-TS-023-->
+<script>
+(function(){
+'use strict';
+if(window.__SC023__) return;
+window.__SC023__ = true;
+
+/* === Tree-Sitter Outline (gelismis) === */
+var _ts023Timer = null;
+
+function sc023RefreshOutline() {
+    clearTimeout(_ts023Timer);
+    _ts023Timer = setTimeout(function() {
+        try {
+            var st = window.settings || {};
+            if (st.treesitterEnabled === false) return;
+            var tb = aktifTab(); if (!tb) return;
+            var a = scApi(); if (!a || !a.treesitter_parse) return;
+            var code = edGet();
+            if (!code || code.length > 500000) return; // 500KB ust skip
+            a.treesitter_parse(tb.lang || 'python', code).then(function(r) {
+                if (!r || !r.ok) return;
+                var syms = r.symbols || [];
+                var el = document.getElementById('sc23Outline');
+                if (!el) return;
+                if (!syms.length) {
+                    el.innerHTML = '<div style="padding:10px;color:var(--dim);font-size:11px">Sembol yok</div>';
+                    return;
+                }
+                // Grupla
+                var groups = {function: [], class: [], variable: [], import: []};
+                syms.forEach(function(s) {
+                    var g = groups[s.type] || groups.variable;
+                    g.push(s);
+                });
+                var html = '';
+                var icons = {function: 'ƒ', class: '⬡', variable: '𝑥', import: '↓'};
+                var colors = {function: 'var(--accent)', class: '#E0AAFF', variable: 'var(--text-dim)', import: '#7A8494'};
+                Object.keys(groups).forEach(function(g) {
+                    if (!groups[g].length) return;
+                    html += '<div style="padding:4px 8px;font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px">' + g + ' (' + groups[g].length + ')</div>';
+                    groups[g].slice(0, 40).forEach(function(s) {
+                        html += '<div style="padding:3px 8px 3px 16px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px" '
+                            + 'onclick="sc023GoTo(' + s.line + ',' + s.col + ')" '
+                            + 'onmouseover="this.style.background=\'var(--bg-hover)\'" '
+                            + 'onmouseout="this.style.background=\'\'">'
+                            + '<span style="color:' + (colors[g] || 'var(--text)') + ';font-weight:700;font-family:var(--font-mono)">' + (icons[g] || '?') + '</span>'
+                            + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + s.name.replace(/</g, '&lt;') + '</span>'
+                            + '<span style="margin-left:auto;color:var(--dim);font-size:10px;font-family:var(--font-mono)">:' + s.line + '</span>'
+                            + '</div>';
+                    });
+                });
+                el.innerHTML = html || '<div style="padding:10px;color:var(--dim)">Sembol yok</div>';
+            }).catch(function(){});
+        } catch(e) {}
+    }, 600);
+}
+
+window.sc023GoTo = function(line, col) {
+    try {
+        editor.revealLineInCenter(line);
+        editor.setPosition({lineNumber: line, column: (col || 0) + 1});
+        editor.focus();
+    } catch(e) {}
+};
+
+/* === Bracket Matching (gelismis) === */
+var _ts023BracketDecor = [];
+var _ts023BracketTimer = null;
+
+function sc023BracketMatch() {
+    clearTimeout(_ts023BracketTimer);
+    _ts023BracketTimer = setTimeout(function() {
+        try {
+            var st = window.settings || {};
+            if (st.treesitterEnabled === false) return;
+            var a = scApi(); if (!a || !a.treesitter_bracket) return;
+            var pos = editor.getPosition(); if (!pos) return;
+            a.treesitter_bracket(edGet(), pos.lineNumber - 1, pos.column - 1).then(function(r) {
+                try {
+                    if (r && r.ok) {
+                        _ts023BracketDecor = editor.deltaDecorations(_ts023BracketDecor, [
+                            {range: new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + 1),
+                             options: {className: 'sc023-bracket-hl'}},
+                            {range: new monaco.Range(r.line + 1, r.col + 1, r.line + 1, r.col + 2),
+                             options: {className: 'sc023-bracket-hl'}}
+                        ]);
+                    } else {
+                        _ts023BracketDecor = editor.deltaDecorations(_ts023BracketDecor, []);
+                    }
+                } catch(e) {}
+            }).catch(function(){});
+        } catch(e) {}
+    }, 100);
+}
+
+/* === CSS === */
+var st023 = document.createElement('style');
+st023.textContent = '.sc023-bracket-hl{background:rgba(47,129,247,.3)!important;outline:1px solid rgba(47,129,247,.6);border-radius:2px}';
+document.head.appendChild(st023);
+
+/* === Hook: editor hazir olunca bagla === */
+function sc023Hook() {
+    if (!window.monaco || !window.editor) { setTimeout(sc023Hook, 500); return; }
+    try {
+        editor.onDidChangeModelContent(function() {
+            sc023RefreshOutline();
+        });
+        editor.onDidChangeCursorPosition(function() {
+            sc023BracketMatch();
+        });
+        // Ilk parse
+        setTimeout(sc023RefreshOutline, 1000);
+    } catch(e) {}
+}
+sc023Hook();
+
+/* === Override: eski treesitter_parse'i kullanma === */
+// Patch 022'nin treesitter_parse'ini override ediyoruz
+// (yeni versiyon tree-sitter -> ast -> regex fallback zinciri)
+
+})();
+</script>
+<!--/SC-TS-023-->
+
+<!--SC-LSP-022-->
+<script>
+(function(){
+'use strict';
+if(window.__SC022__) return;
+window.__SC022__ = true;
+
+// === FIX: convertCompletion - better kind handling ===
+window.convertCompletion = function(item) {
+    const K = monaco.languages.CompletionItemKind;
+    const map = { 1: K.Text, 2: K.Method, 3: K.Function, 4: K.Constructor,
+        5: K.Field, 6: K.Variable, 7: K.Class, 8: K.Interface, 9: K.Module,
+        10: K.Property, 11: K.Unit, 12: K.Value, 13: K.Enum, 14: K.Keyword,
+        15: K.Snippet, 16: K.Color, 17: K.File, 18: K.Reference, 19: K.Folder,
+        20: K.EnumMember, 21: K.Constant, 22: K.Struct, 23: K.Event,
+        24: K.Operator, 25: K.TypeParameter };
+    let doc = item.documentation;
+    if (doc && typeof doc === 'object') doc = doc.value;
+    let lbl, lblDetail;
+    if (item.label && typeof item.label === 'object') {
+        lbl = item.label.label || '';
+        lblDetail = item.label.detail || item.label.description || null;
+    } else {
+        lbl = String(item.label || '');
+        lblDetail = null;
+    }
+    const kind = (item.kind && map[item.kind]) ? map[item.kind] : K.Text;
+    return {
+        label: { label: lbl, detail: lblDetail || item.detail || undefined },
+        kind: kind,
+        insertText: item.insertText || (item.textEdit && item.textEdit.newText) || lbl,
+        detail: item.detail || lblDetail,
+        documentation: doc,
+        sortText: item.sortText || lbl,
+        filterText: item.filterText || lbl
+    };
+};
+
+// === FIX: Breakpoint decoration tracking ===
+window._sc22BpDecorIds = [];
+const _origToggleBp = window.sc23ToggleBreakpoint;
+window.sc23ToggleBreakpoint = function() {
+    try {
+        const pos = editor.getPosition(); if (!pos) return;
+        const line = pos.lineNumber;
+        if (window._sc23.breakpoints.has(line)) {
+            window._sc23.breakpoints.delete(line);
+        } else {
+            window._sc23.breakpoints.add(line);
+        }
+        // Use stored decoration IDs to properly remove old decorations
+        const newDecorations = [...window._sc23.breakpoints].map(l => ({
+            range: new monaco.Range(l, 1, l, 1),
+            options: { isWholeLine: true, className: 'sc23-bp-line',
+                       glyphMarginClassName: 'sc23-bp-glyph' }
+        }));
+        window._sc22BpDecorIds = editor.deltaDecorations(
+            window._sc22BpDecorIds, newDecorations);
+        sc23Toast('Breakpoint: satır ' + line + ' ' +
+            (window._sc23.breakpoints.has(line) ? 'eklendi' : 'silindi'));
+    } catch(e) { console.log('bp error', e); }
+};
+
+// === Tree-sitter outline integration ===
+window._sc22TsDebounce = null;
+const _origModelChange = null;
+function sc22TreesitterRefresh() {
+    clearTimeout(window._sc22TsDebounce);
+    window._sc22TsDebounce = setTimeout(async () => {
+        try {
+            const st = window.settings || {};
+            if (st.treesitterEnabled === false) return;
+            const tb = aktifTab(); if (!tb) return;
+            const a = scApi(); if (!a || !a.treesitter_parse) return;
+            const r = await a.treesitter_parse(tb.lang || 'python', edGet());
+            if (r && r.ok && r.symbols && r.symbols.length) {
+                const el = document.getElementById('sc23Outline');
+                if (el) {
+                    el.innerHTML = r.symbols.slice(0, 80).map(s => {
+                        const icon = s.type === 'function' ? 'ƒ' :
+                                     s.type === 'class' ? '📦' : '𝑥';
+                        return '<div style="padding:4px 8px;cursor:pointer;font-size:12px" onclick="try{editor.revealLineInCenter(' + s.line + ');editor.setPosition({lineNumber:' + s.line + ',column:1});editor.focus();}catch(e){}">' +
+                            icon + ' ' + s.name.replace(/</g, '&lt;') +
+                            ' <span style="color:var(--dim);font-size:10px">:' + s.line + '</span></div>';
+                    }).join('');
+                }
+            }
+        } catch(e) {}
+    }, 600);
+}
+
+// Hook into editor content change for tree-sitter
+setTimeout(() => {
+    try {
+        if (editor) {
+            editor.onDidChangeModelContent(() => { sc22TreesitterRefresh(); });
+        }
+    } catch(e) {}
+    // Also hook tab switch
+    const _origAktif = window.aktifSekmeYap;
+    if (typeof _origAktif === 'function') {
+        window.aktifSekmeYap = function(id) {
+            _origAktif(id);
+            setTimeout(sc22TreesitterRefresh, 200);
+        };
+    }
+}, 2000);
+
+// === Bracket matching with tree-sitter ===
+window._sc22BracketDecor = [];
+async function sc22BracketHighlight() {
+    try {
+        const st = window.settings || {};
+        if (st.treesitterEnabled === false) return;
+        const a = scApi(); if (!a || !a.treesitter_bracket) return;
+        const pos = editor.getPosition(); if (!pos) return;
+        const r = await a.treesitter_bracket(edGet(), pos.lineNumber - 1, pos.column - 1);
+        if (r && r.ok) {
+            window._sc22BracketDecor = editor.deltaDecorations(
+                window._sc22BracketDecor,
+                [{ range: new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + 1),
+                   options: { className: 'sc22-bracket-hl' } },
+                 { range: new monaco.Range(r.line + 1, r.col + 1, r.line + 1, r.col + 2),
+                   options: { className: 'sc22-bracket-hl' } }]
+            );
+        } else {
+            window._sc22BracketDecor = editor.deltaDecorations(window._sc22BracketDecor, []);
+        }
+    } catch(e) {}
+}
+// Debounced bracket highlight on cursor move
+let _sc22BracketTimer = null;
+setTimeout(() => {
+    try {
+        if (editor) {
+            editor.onDidChangeCursorPosition(() => {
+                clearTimeout(_sc22BracketTimer);
+                _sc22BracketTimer = setTimeout(sc22BracketHighlight, 100);
+            });
+        }
+    } catch(e) {}
+}, 2000);
+
+// === CSS for bracket highlight ===
+const st022 = document.createElement('style');
+st022.textContent = '.sc22-bracket-hl{background:rgba(47,129,247,0.25)!important;border-radius:2px;outline:1px solid rgba(47,129,247,0.5)}';
+document.head.appendChild(st022);
+
+// === LSP status indicator update ===
+const _origLspCheck = window.lspOtoKurSor;
+window.lspOtoKurSor = function(lang) {
+    if (typeof _origLspCheck === 'function') _origLspCheck(lang);
+    // Update status bar
+    const a = scApi(); if (!a) return;
+    a.lsp_check(lang).then(r => {
+        const b = document.getElementById('lspStatus');
+        if (!b) return;
+        if (r && r.active) {
+            b.textContent = 'LSP: ✓';
+            b.style.color = '#3FB950';
+        } else {
+            b.textContent = 'LSP: ○';
+            b.style.color = '#D29922';
+        }
+    }).catch(() => {});
+};
+
+})();
+</script>
+<!--/SC-LSP-022-->
+
+<!--SC-SPLIT-019-->
+<style>
+/* === SC-019: Split Yonlendirme === */
+
+/* Dikey split: editor2 sagda (editor-container icinde, row) */
+#editor-container.split-v {
+    flex-direction: row !important;
+}
+#editor-container.split-v #editor2 {
+    display: block;
+    border-left: 2px solid var(--border);
+}
+
+/* Yatay split: editor2 altta (center icinde, editor-container disinda) */
+#editor2.sc-split-bottom {
+    display: block !important;
+    height: 35%;
+    min-height: 120px;
+    border-top: 2px solid var(--border);
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Split resize handle */
+#scSplitHandle {
+    background: var(--border);
+    transition: background 0.15s;
+    z-index: 15;
+    flex-shrink: 0;
+}
+#scSplitHandle:hover, #scSplitHandle.dragging {
+    background: var(--accent);
+}
+#scSplitHandle.mode-v {
+    width: 5px;
+    cursor: ew-resize;
+}
+#scSplitHandle.mode-h {
+    height: 5px;
+    cursor: ns-resize;
+    width: 100%;
+}
+
+/* editor-container icindeyken editor2'nin flex davranisi */
+#editor-container.split-v #editor {
+    flex: 1;
+    min-width: 0;
+}
+#editor-container.split-v #editor2 {
+    flex: 1;
+    min-width: 0;
+}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__SC019__) return;
+window.__SC019__ = true;
+
+/* === Split Toggle Override === */
+window.splitToggle = function(m) {
+    var c = document.getElementById('editor-container');
+    var s = document.getElementById('editor2');
+    var center = document.getElementById('center');
+    if (!c || !s || !center) return;
+
+    var currentMode = window.settings.splitMode || 'none';
+
+    /* --- KAPAT --- */
+    if (currentMode === m) {
+        window.settings.splitMode = 'none';
+        c.className = 'vertical';
+        s.classList.remove('open', 'sc-split-bottom');
+        s.style.display = 'none';
+        sc019RemoveHandle();
+        /* editor2'yi editor-container icine geri tasir */
+        if (s.parentElement !== c) {
+            c.appendChild(s);
+        }
+        if (editor2) { try { editor2.dispose(); } catch(e){} editor2 = null; }
+        sc019LayoutAll();
+        return;
+    }
+
+    /* --- AC --- */
+    window.settings.splitMode = m;
+    sc019RemoveHandle();
+
+    if (m === 'vertical') {
+        /* DIKEY: editor2 sagda, editor-container icinde */
+        c.className = 'vertical split-v';
+        /* editor2'yi editor-container icine geri getir (horizontal'dan geciyorsa) */
+        if (s.parentElement !== c) {
+            c.appendChild(s);
+        }
+        s.classList.add('open');
+        s.classList.remove('sc-split-bottom');
+        s.style.display = 'block';
+        s.style.height = '';
+        s.style.borderLeft = '';
+        s.style.borderTop = '';
+        sc019AddHandle('v');
+
+    } else if (m === 'horizontal') {
+        /* YATAY: editor2 altta, center icinde (editor-container disinda) */
+        c.className = 'vertical'; /* editor-container sadece editor1'i gosterir */
+        /* editor2'yi center'a tasi (editor-container'dan cikar) */
+        if (s.parentElement === c) {
+            /* editor-container'dan cikar, center'a ekle (welcomeView'den once) */
+            var wv = document.getElementById('welcomeView');
+            if (wv && wv.parentElement === center) {
+                center.insertBefore(s, wv);
+            } else {
+                center.appendChild(s);
+            }
+        }
+        s.classList.add('open', 'sc-split-bottom');
+        s.style.display = 'block';
+        sc019AddHandle('h');
+    }
+
+    /* editor2 Monaco instance olustur */
+    if (!editor2 && window.monaco) {
+        editor2 = monaco.editor.create(s, {
+            value: '// İkinci editör',
+            language: 'python',
+            theme: 'sc-dyn',
+            fontSize: window.settings.fontSize || 13.5,
+            fontFamily: window.settings.fontFamily || 'JetBrains Mono',
+            minimap: { enabled: false },
+            automaticLayout: true,
+            tabSize: window.settings.tabSize || 4,
+            scrollBeyondLastLine: false
+        });
+    }
+
+    sc019LayoutAll();
+    toast('Split: ' + (m === 'vertical' ? 'Dikey (sağ)' : 'Yatay (alt)'), 'info');
+};
+
+/* === Resize Handle === */
+function sc019AddHandle(mode) {
+    sc019RemoveHandle();
+    var h = document.createElement('div');
+    h.id = 'scSplitHandle';
+    h.className = mode === 'v' ? 'mode-v' : 'mode-h';
+    h.title = 'Sürükle: split boyutlandır';
+
+    if (mode === 'v') {
+        /* Dikey: handle, editor ile editor2 arasinda (editor-container icinde) */
+        var c = document.getElementById('editor-container');
+        var s = document.getElementById('editor2');
+        if (c && s && s.parentElement === c) {
+            c.insertBefore(h, s);
+        }
+    } else {
+        /* Yatay: handle, editor-container ile editor2 arasinda (center icinde) */
+        var center = document.getElementById('center');
+        var s2 = document.getElementById('editor2');
+        if (center && s2 && s2.parentElement === center) {
+            center.insertBefore(h, s2);
+        }
+    }
+
+    /* Drag logic */
+    h.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        h.classList.add('dragging');
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = mode === 'v' ? 'ew-resize' : 'ns-resize';
+
+        var startX = e.clientX, startY = e.clientY;
+        var s = document.getElementById('editor2');
+        var startW = s.offsetWidth, startH = s.offsetHeight;
+
+        function onMove(ev) {
+            if (mode === 'v') {
+                var dw = startX - ev.clientX;
+                var newW = Math.max(150, startW + dw);
+                s.style.flex = 'none';
+                s.style.width = newW + 'px';
+            } else {
+                var dh = startY - ev.clientY;
+                var newH = Math.max(80, startH + dh);
+                s.style.height = newH + 'px';
+                s.style.flex = 'none';
+            }
+            sc019LayoutAll();
+        }
+        function onUp() {
+            h.classList.remove('dragging');
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    });
+}
+
+function sc019RemoveHandle() {
+    var h = document.getElementById('scSplitHandle');
+    if (h) h.remove();
+}
+
+/* === Layout refresh === */
+function sc019LayoutAll() {
+    try { if (editor) editor.layout(); } catch(e){}
+    try { if (editor2) editor2.layout(); } catch(e){}
+}
+
+/* === Init: sayfa yuklendiginde mevcut splitMode'u uygula === */
+var _t019 = setInterval(function(){
+    if (!window.monaco || !window.editor) return;
+    clearInterval(_t019);
+    var m = window.settings.splitMode;
+    if (m && m !== 'none') {
+        /* Mevcut moda gore yeniden duzenle */
+        window.settings.splitMode = 'none';
+        window.splitToggle(m);
+    }
+}, 800);
+
+})();
+</script>
+<!--/SC-SPLIT-019-->
+
+<!--SC-SPLIT-021-->
+<style>
+/* === SC-021: Yatay split + resize + header === */
+#editor-container.horizontal { flex-direction: column; }
+#editor-container.horizontal .editor-pane { width: 100%; min-height: 80px; }
+#editor-container.horizontal #sc21SplitPane { border-top: 2px solid var(--border); border-left: none; }
+#editor-container.vertical #sc21SplitPane { border-left: 2px solid var(--border); border-top: none; }
+#splitDivider { flex-shrink: 0; background: var(--border); z-index: 10; transition: background .15s; }
+#splitDivider:hover { background: var(--accent); }
+#sc21SplitPane { display: none; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
+#sc21SplitPane.open { display: flex; }
+#sc21SplitHeader { height: 28px; background: var(--bg-alt); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 8px; font-size: 11px; color: var(--dim); gap: 6px; flex-shrink: 0; }
+#sc21SplitHeader .icon-btn { width: 22px; height: 22px; }
+.sc21-badge { background: var(--warning); color: #000; padding: 1px 7px; border-radius: 3px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__SC021__) return;
+window.__SC021__ = true;
+
+window._splitTempPath = null;
+window._splitModel = null;
+window._activeEditor = 1;
+window._splitMode = null;
+
+/* ===== DOM kurulumu (bir kez) ===== */
+function sc21SetupDOM(){
+    if(document.getElementById('sc21SplitPane')) return;
+    var container = document.getElementById('editor-container');
+    var ed2 = document.getElementById('editor2');
+    if(!container || !ed2) return;
+
+    var wrapper = document.createElement('div');
+    wrapper.id = 'sc21SplitPane';
+    wrapper.className = 'editor-pane secondary';
+
+    var header = document.createElement('div');
+    header.id = 'sc21SplitHeader';
+    header.innerHTML =
+        '<span class="sc21-badge">SPLIT</span>' +
+        '<span id="sc21SplitFileName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>' +
+        '<button class="icon-btn" onclick="runSplitFile()" title="Split Calistir (F5)">▶</button>' +
+        '<button class="icon-btn" onclick="splitToggle(window._splitMode)" title="Split Kapat">✕</button>';
+
+    var divider = document.createElement('div');
+    divider.id = 'splitDivider';
+    divider.style.display = 'none';
+
+    container.insertBefore(wrapper, ed2);
+    container.insertBefore(divider, wrapper);
+    wrapper.appendChild(header);
+    wrapper.appendChild(ed2);
+
+    ed2.classList.remove('editor-pane','secondary');
+    ed2.style.cssText = 'flex:1;min-height:0;min-width:0;overflow:hidden;';
+}
+
+/* ===== SPLIT TOGGLE (temp dosya tabanli) ===== */
+window.splitToggle = function(m){
+    sc21SetupDOM();
+    var c = document.getElementById('editor-container');
+    var pane = document.getElementById('sc21SplitPane');
+    var divider = document.getElementById('splitDivider');
+    var edPane = document.getElementById('editor');
+    if(!c || !pane) return;
+
+    /* eski tabs2'yi gizle (onceki patch'lerden) */
+    var t2 = document.getElementById('tabs2');
+    if(t2) t2.style.display = 'none';
+
+    /* ---- KAPAT ---- */
+    if(window.settings.splitMode === m){
+        window.settings.splitMode = 'none';
+        window._splitMode = null;
+        c.className = 'vertical';
+        pane.style.display = 'none';
+        pane.classList.remove('open');
+        if(divider) divider.style.display = 'none';
+        edPane.style.flex = '';
+        pane.style.flex = '';
+        if(window._splitTempPath){
+            var a0 = scApi();
+            if(a0 && a0.split_temp_sil) a0.split_temp_sil(window._splitTempPath);
+            window._splitTempPath = null;
+        }
+        if(editor2){ try{editor2.dispose();}catch(e){} editor2 = null; }
+        if(window._splitModel){ try{window._splitModel.dispose();}catch(e){} window._splitModel = null; }
+        window._activeEditor = 1;
+        try{ editor.layout(); }catch(e){}
+        return;
+    }
+
+    /* ---- MOD DEGISTIR (split zaten acik) ---- */
+    if(window.settings.splitMode && window.settings.splitMode !== m && window._splitTempPath){
+        window.settings.splitMode = m;
+        window._splitMode = m;
+        c.className = m;
+        if(divider){
+            divider.style.width  = m==='vertical' ? '6px' : 'auto';
+            divider.style.height = m==='vertical' ? 'auto' : '6px';
+            divider.style.cursor = m==='vertical' ? 'ew-resize' : 'ns-resize';
+        }
+        edPane.style.flex = '';
+        pane.style.flex = '';
+        sc21SetupResize(m);
+        setTimeout(function(){
+            try{editor.layout();}catch(e){}
+            try{if(editor2)editor2.layout();}catch(e){}
+        },60);
+        return;
+    }
+
+    /* ---- AC ---- */
+    var tb = aktifTab();
+    if(!tb || !tb.path){
+        toast('Split icin once bir dosya acin','warning');
+        return;
+    }
+    var a = scApi();
+    if(!a || !a.split_temp_olustur){
+        toast('Split API hazir degil','error');
+        return;
+    }
+    var content = edGet();
+
+    a.split_temp_olustur(tb.path, content).then(function(r){
+        if(!r || !r.ok){
+            toast('Temp dosya olusturulamadi','error');
+            return;
+        }
+        window._splitTempPath = r.path;
+        window._splitMode = m;
+        window.settings.splitMode = m;
+
+        c.className = m;
+        pane.style.display = 'flex';
+        pane.classList.add('open');
+        if(divider){
+            divider.style.display = 'block';
+            divider.style.width  = m==='vertical' ? '6px' : 'auto';
+            divider.style.height = m==='vertical' ? 'auto' : '6px';
+            divider.style.cursor = m==='vertical' ? 'ew-resize' : 'ns-resize';
+        }
+
+        var fn = document.getElementById('sc21SplitFileName');
+        if(fn) fn.textContent = r.name;
+
+        if(editor2){ try{editor2.dispose();}catch(e){} editor2 = null; }
+        if(window._splitModel){ try{window._splitModel.dispose();}catch(e){} }
+
+        var lang = r.lang || tb.lang || 'python';
+        window._splitModel = monaco.editor.createModel(content, lang);
+
+        var ed2div = document.getElementById('editor2');
+        editor2 = monaco.editor.create(ed2div, {
+            model: window._splitModel,
+            theme: 'sc-dyn',
+            fontSize: window.settings.fontSize,
+            fontFamily: window.settings.fontFamily,
+            minimap: { enabled: false },
+            automaticLayout: true,
+            tabSize: window.settings.tabSize,
+            scrollBeyondLastLine: false,
+            lineNumbers: 'on',
+            glyphMargin: true
+        });
+        editor2.onDidFocusEditorText(function(){ window._activeEditor = 2; });
+
+        sc21SetupResize(m);
+        setTimeout(function(){
+            try{editor.layout();}catch(e){}
+            try{if(editor2)editor2.layout();}catch(e){}
+        },60);
+        setTimeout(function(){
+            try{editor.layout();}catch(e){}
+            try{if(editor2)editor2.layout();}catch(e){}
+        },200);
+        toast('Split: ' + r.name,'success');
+    });
+};
+
+/* ===== RESIZE (suruklenebilir ayirici) ===== */
+function sc21SetupResize(mode){
+    var divider = document.getElementById('splitDivider');
+    if(!divider) return;
+    var nd = divider.cloneNode(true);
+    divider.parentNode.replaceChild(nd, divider);
+    divider = nd;
+
+    var edPane  = document.getElementById('editor');
+    var spPane  = document.getElementById('sc21SplitPane');
+    var cont    = document.getElementById('editor-container');
+
+    divider.addEventListener('mousedown', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var startPos   = mode==='vertical' ? e.clientX : e.clientY;
+        var contSize   = mode==='vertical' ? cont.offsetWidth : cont.offsetHeight;
+        var startSize1 = mode==='vertical' ? edPane.offsetWidth : edPane.offsetHeight;
+
+        document.body.style.cursor = mode==='vertical' ? 'ew-resize' : 'ns-resize';
+        document.body.style.userSelect = 'none';
+
+        function onMove(ev){
+            var cur   = mode==='vertical' ? ev.clientX : ev.clientY;
+            var delta = cur - startPos;
+            var ns1   = Math.max(100, Math.min(contSize - 100, startSize1 + delta));
+            var pct   = (ns1 / contSize * 100).toFixed(2);
+            edPane.style.flex = '0 0 ' + pct + '%';
+            spPane.style.flex = '1';
+            try{editor.layout();}catch(e){}
+            try{if(editor2)editor2.layout();}catch(e){}
+        }
+        function onUp(){
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    });
+}
+
+/* ===== SPLIT'TE CALISTIR ===== */
+window.runSplitFile = function(){
+    if(!window._splitTempPath){
+        toast('Split aktif degil','warning');
+        return;
+    }
+    var a = scApi(); if(!a) return;
+    var content = window._splitModel ? window._splitModel.getValue() : '';
+    a.kaydet(window._splitTempPath, content).then(function(r){
+        if(!r || !r.ok){
+            toast('Split dosyasi kaydedilemedi','error');
+            return;
+        }
+        var rp = document.getElementById('runPanel');
+        rp.classList.add('open');
+        document.getElementById('runOutput').textContent = '> Calistiriliyor (split temp)...\n';
+        var path = window._splitTempPath;
+        var ls = Math.max(path.lastIndexOf('\\'), path.lastIndexOf('/'));
+        var cwd = ls > 0 ? path.substring(0, ls) : (window._cwd || '');
+        a.calistir(path, cwd).then(function(r2){
+            if(!r2 || !r2.ok){
+                document.getElementById('runOutput').textContent +=
+                    '\nHata: ' + ((r2 && r2.hata) || 'bilinmeyen');
+            }
+        });
+    });
+};
+
+/* ===== CALISTIR override: split focus'ta temp dosyayi calistir ===== */
+var _origCalistir = window.calistir;
+window.calistir = function(){
+    if(window._activeEditor === 2 && window._splitTempPath){
+        window.runSplitFile();
+        return;
+    }
+    if(_origCalistir) _origCalistir();
+};
+
+/* ===== KAYDET override: split focus'ta temp dosyaya kaydet ===== */
+var _origKaydet = window.kaydet;
+window.kaydet = function(){
+    if(window._activeEditor === 2 && window._splitModel && window._splitTempPath){
+        var a = scApi();
+        if(!a) return Promise.resolve(false);
+        return a.kaydet(window._splitTempPath, window._splitModel.getValue()).then(function(r){
+            if(r.ok){
+                toast('Split kaydedildi','success');
+                return true;
+            }
+            toast(r.hata || 'Kaydetme hatasi','error');
+            return false;
+        });
+    }
+    return _origKaydet ? _origKaydet() : Promise.resolve(false);
+};
+
+/* ===== INIT: editor1 focus tracking + DOM kurulumu ===== */
+var _initT = setInterval(function(){
+    if(window.monaco && window.editor){
+        clearInterval(_initT);
+        sc21SetupDOM();
+        window.editor.onDidFocusEditorText(function(){
+            window._activeEditor = 1;
+        });
+    }
+},200);
+
+})();
+</script>
+<!--/SC-SPLIT-021-->
+
+<!--SC-SPLIT-018-->
+<style>
+/* === Split Editor CSS === */
+#editor-container.horizontal{flex-direction:column}
+#editor-container.horizontal .editor-pane{flex:1;min-height:0;min-width:0;width:100%}
+#editor-container.horizontal .editor-pane.secondary{border-top:1px solid var(--border);border-left:none}
+#editor-container.vertical .editor-pane{flex:1;min-height:0;min-width:0;height:100%}
+#editor-container.vertical .editor-pane.secondary{border-left:1px solid var(--border);border-top:none}
+.editor-pane.secondary{display:none}
+.editor-pane.secondary.open{display:block}
+/* Split tab bar */
+#tabs2{height:30px;background:var(--bg-alt);border-bottom:1px solid var(--border);display:none;align-items:stretch;padding:0 4px;gap:1px;flex-shrink:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+#tabs2::-webkit-scrollbar{display:none}
+#tabs2.open{display:flex}
+#tabs2 .tab{height:30px;font-size:11.5px;flex:0 0 140px;width:140px;min-width:100px;max-width:200px}
+#tabs2 .tab.active::after{background:var(--success)}
+#tabs2 .split-indicator{display:flex;align-items:center;padding:0 8px;font-size:10px;color:var(--dim);font-family:var(--font-mono);white-space:nowrap;border-right:1px solid var(--border)}
+/* Split divider in main tab bar */
+#tabs .split-divider{width:2px;background:var(--accent);margin:4px 2px;border-radius:1px;flex-shrink:0}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__SC018__)return;
+window.__SC018__=true;
+
+/* === State === */
+window.activeTabId2=null;
+
+/* === Split Toggle Override === */
+window.splitToggle=function(m){
+  var c=document.getElementById('editor-container');
+  var s=document.getElementById('editor2');
+  if(!c||!s)return;
+
+  if(window.settings.splitMode===m){
+    /* KAPAT */
+    window.settings.splitMode='none';
+    c.className='vertical';
+    s.classList.remove('open');
+    if(editor2){try{editor2.dispose();}catch(e){} editor2=null;}
+    window.activeTabId2=null;
+    var t2=document.getElementById('tabs2');
+    if(t2)t2.classList.remove('open');
+    sc18RemoveDivider();
+    if(editor){try{editor.layout();}catch(e){}}
+    sc18RenderTabs2();
+    return;
+  }
+
+  /* AC */
+  window.settings.splitMode=m;
+  c.className=m;
+  s.classList.add('open');
+
+  var tb=null;
+  try{tb=aktifTab();}catch(e){}
+  var model=(tb&&tb.model)?tb.model:null;
+
+  if(!editor2&&window.monaco){
+    editor2=monaco.editor.create(s,{
+      model:model,
+      theme:'sc-dyn',
+      fontSize:window.settings.fontSize||13.5,
+      fontFamily:window.settings.fontFamily||'JetBrains Mono',
+      minimap:{enabled:false},
+      automaticLayout:true,
+      tabSize:window.settings.tabSize||4,
+      scrollBeyondLastLine:false,
+      wordWrap:window.settings.wordWrap?'on':'off'
+    });
+  }else if(editor2&&model){
+    try{editor2.setModel(model);}catch(e){}
+  }
+
+  window.activeTabId2=window.activeTabId||null;
+
+  /* Tab bar 2'yi goster */
+  sc18EnsureTabs2();
+  sc18AddDivider();
+  sc18RenderTabs2();
+
+  /* Layout düzelt */
+  setTimeout(function(){
+    try{if(editor)editor.layout();}catch(e){}
+    try{if(editor2)editor2.layout();}catch(e){}
+  },60);
+  setTimeout(function(){
+    try{if(editor)editor.layout();}catch(e){}
+    try{if(editor2)editor2.layout();}catch(e){}
+  },200);
+};
+
+/* === Tabs2 (editor2 tab bar) === */
+function sc18EnsureTabs2(){
+  var t2=document.getElementById('tabs2');
+  if(!t2){
+    t2=document.createElement('div');
+    t2.id='tabs2';
+    var tabs=document.getElementById('tabs');
+    if(tabs&&tabs.parentNode){
+      tabs.parentNode.insertBefore(t2,tabs.nextSibling);
+    }
+  }
+  t2.classList.add('open');
+}
+
+function sc18AddDivider(){
+  var tabs=document.getElementById('tabs');
+  if(!tabs)return;
+  if(document.getElementById('sc18divider'))return;
+  var d=document.createElement('div');
+  d.id='sc18divider';
+  d.className='split-divider';
+  tabs.appendChild(d);
+}
+
+function sc18RemoveDivider(){
+  var d=document.getElementById('sc18divider');
+  if(d)d.remove();
+}
+
+function sc18RenderTabs2(){
+  var t2=document.getElementById('tabs2');
+  if(!t2)return;
+  if(!window.settings||window.settings.splitMode==='none'||!window.settings.splitMode){
+    t2.classList.remove('open');
+    return;
+  }
+  t2.classList.add('open');
+  var h='<span class="split-indicator">SPLIT</span>';
+  h+=(window.tabs||[]).map(function(tb){
+    var cls='tab'+(tb.id===window.activeTabId2?' active':'')+(tb.dirty?' dirty':'');
+    return '<div class="'+cls+'" onclick="sc18Tab2Click('+tb.id+')" title="'+tb.name+'">'
+      +'<span class="lang-dot"></span>'
+      +'<span class="tab-name">'+tb.name+'</span>'
+      +'</div>';
+  }).join('');
+  t2.innerHTML=h;
+}
+
+/* Editor2 tab tiklama */
+window.sc18Tab2Click=function(id){
+  var tb=(window.tabs||[]).find(function(t){return t.id===id;});
+  if(!tb)return;
+  window.activeTabId2=id;
+  if(editor2&&tb.model){
+    try{editor2.setModel(tb.model);}catch(e){}
+  }
+  sc18RenderTabs2();
+};
+
+/* === RenderTabs override: split acikken tabs2'yi de guncelle === */
+var _origRenderTabs=window.renderTabs;
+window.renderTabs=function(){
+  if(typeof _origRenderTabs==='function')_origRenderTabs();
+  sc18RenderTabs2();
+};
+
+/* === aktifSekmeYap override: editor2 modelini de guncelle === */
+var _origAktif=window.aktifSekmeYap;
+window.aktifSekmeYap=function(id){
+  if(typeof _origAktif==='function')_origAktif(id);
+  /* Split aciksa editor2'yi de senkronize et */
+  if(window.settings&&window.settings.splitMode&&window.settings.splitMode!=='none'){
+    var tb=(window.tabs||[]).find(function(t){return t.id===id;});
+    if(tb&&tb.model&&editor2){
+      try{editor2.setModel(tb.model);}catch(e){}
+      window.activeTabId2=id;
+      sc18RenderTabs2();
+    }
+  }
+};
+
+/* === Oto-kayit: split acikken CALISMAZ === */
+var _origAutosave=null;
+/* Mevcut autosave interval'i bulup override edemeyiz,
+   ama kaydet fonksiyonunu wrap'leyebiliriz */
+var _origKaydet=window.kaydet;
+window.kaydet=function(){
+  /* Split acikken ve editor2 focus'taysa kaydetme yapma */
+  var splitActive=window.settings&&window.settings.splitMode&&window.settings.splitMode!=='none';
+  if(splitActive){
+    /* Split acik: sadece ana editor'den kaydet */
+    /* editor2 focus'taysa bile kaydet, cunku model ayni */
+  }
+  if(typeof _origKaydet==='function')return _origKaydet();
+  return Promise.resolve(false);
+};
+
+/* Autosave interval override: split acikken atla */
+var _sc18AutosaveTimer=null;
+function sc18StartAutosave(){
+  if(_sc18AutosaveTimer)clearInterval(_sc18AutosaveTimer);
+  _sc18AutosaveTimer=setInterval(function(){
+    /* Split aciksa oto-kayit YAPMA */
+    if(window.settings&&window.settings.splitMode&&window.settings.splitMode!=='none'){
+      return;
+    }
+    if(!window.settings||!window.settings.autosave)return;
+    var tb=null;
+    try{tb=aktifTab();}catch(e){}
+    if(tb&&tb.dirty&&tb.path){
+      tb.saving=true;
+      var a2=null;
+      try{a2=scApi();}catch(e){}
+      if(a2){
+        var content='';
+        try{content=edGet();}catch(e){}
+        a2.kaydet(tb.path,content).then(function(r){
+          tb.saving=false;
+          if(r&&r.ok){tb.dirty=false;try{renderTabs();}catch(e){}}
+        });
+      }
+    }
+  },30000);
+}
+sc18StartAutosave();
+
+/* === sekmeKapat override: split'te editor2 modelini temizle === */
+var _origSekmeKapat=window.sekmeKapat;
+window.sekmeKapat=function(id,force){
+  if(typeof _origSekmeKapat==='function')_origSekmeKapat(id,force);
+  /* Eger kapatilan tab editor2'deyse */
+  if(window.activeTabId2===id){
+    window.activeTabId2=null;
+    if(editor2){
+      try{editor2.setModel(null);}catch(e){}
+    }
+  }
+  sc18RenderTabs2();
+};
+
+/* === Yeni sekme acildiginda split'te editor2'ye de ekle === */
+var _origYeniSekme=window.yeniSekme;
+window.yeniSekme=function(o){
+  var tab=null;
+  if(typeof _origYeniSekme==='function')tab=_origYeniSekme(o);
+  /* Split aciksa ve editor2 bos model varsa yeni dosyayi oraya da koy */
+  if(window.settings&&window.settings.splitMode&&window.settings.splitMode!=='none'){
+    if(tab&&tab.model&&editor2&&(!window.activeTabId2)){
+      try{editor2.setModel(tab.model);}catch(e){}
+      window.activeTabId2=tab.id;
+      sc18RenderTabs2();
+    }
+  }
+  return tab;
+};
+
+/* === dosyaYukle override: split aciksa editor2'yi de guncelle === */
+var _origDosyaYukle=window.dosyaYukle;
+window.dosyaYukle=function(y){
+  if(typeof _origDosyaYukle==='function')_origDosyaYukle(y);
+  if(window.settings&&window.settings.splitMode&&window.settings.splitMode!=='none'){
+    setTimeout(function(){
+      var tb=null;
+      try{tb=aktifTab();}catch(e){}
+      if(tb&&tb.model&&editor2){
+        try{editor2.setModel(tb.model);}catch(e){}
+        window.activeTabId2=tb.id;
+        sc18RenderTabs2();
+      }
+    },100);
+  }
+};
+
+})();
+</script>
+<!--/SC-SPLIT-018-->
+
+<!--SC-016-->
+<script>
+(function(){
+'use strict';
+if(window.__SC016__)return;
+window.__SC016__=true;
+
+function loadTree(cwd){
+  if(!cwd)return;
+  var a=scApi();if(!a)return;
+  window._cwd=cwd;
+  var lbl=document.getElementById('cwdLabel');
+  if(lbl)lbl.textContent=cwd;
+  a.klasor_icerik(cwd).then(function(files){
+    if(files&&files.length){try{listele(files);}catch(e){}}
+    try{gitYenile();}catch(e){}
+  }).catch(function(){});
+}
+
+function treeHasItems(){
+  var tree=document.getElementById('tree');
+  return !!(tree&&tree.querySelector('.tree-item'));
+}
+
+function tryRestore(){
+  var a=scApi();if(!a)return;
+  if(window.settings&&window.settings.rememberProject===false)return;
+  a.oturum_yukle().then(function(sess){
+    if(sess&&sess.cwd){loadTree(sess.cwd);return;}
+    a.bilgi().then(function(info){
+      if(info&&info.cwd)loadTree(info.cwd);
+    }).catch(function(){});
+  }).catch(function(){});
+}
+
+function waitReady(cb){
+  var tries=0;
+  var t=setInterval(function(){
+    tries++;
+    if(tries>80){clearInterval(t);return;}
+    if(!window.pywebview||!window.pywebview.api)return;
+    if(typeof listele!=='function')return;
+    if(typeof scApi!=='function')return;
+    clearInterval(t);
+    cb();
+  },250);
+}
+
+waitReady(function(){
+  // 1) bilgi() yolu zaten _cwd set ettiyse karisma
+  setTimeout(function(){
+    if(!window._cwd){tryRestore();}
+  },1200);
+  // 2) _cwd var ama tree yine de bossa doldur
+  setTimeout(function(){
+    if(window._cwd&&!treeHasItems()){loadTree(window._cwd);}
+  },2600);
+});
+
+})();
+</script>
+<!--/SC-016-->
+
+<!--SC-015-->
+<script>
+(function(){
+'use strict';
+if(window.__SC015__) return;
+window.__SC015__=true;
+
+/* ── 1) Kapanista oturumu aktif sekme ile kaydet ── */
+window.addEventListener('beforeunload',function(){
+  try{
+    var a=(window.pywebview&&window.pywebview.api)||null;
+    if(!a) return;
+    var st=window.settings||{};
+    if(!st.rememberSession) return;
+    var tb=null;
+    try{ tb=aktifTab(); }catch(e){}
+    var payload={
+      cwd:window._cwd||null,
+      recentFiles:window.recentFiles||[],
+      tabs:(window.tabs||[]).map(function(t){
+        return {path:t.path,name:t.name,lang:t.lang};
+      }),
+      activeTab:(typeof activeTabId!=='undefined')?activeTabId:null,
+      activeTabPath:(tb&&tb.path)?tb.path:null
+    };
+    a.oturum_kaydet(payload);
+  }catch(e){}
+});
+
+/* ── 2) Sekmeleri sirayla geri yukle ── */
+function sc015Restore(sess){
+  if(!sess||!sess.tabs||!sess.tabs.length) return;
+  var st=window.settings||{};
+  if(!st.rememberSession) return;
+  var list=sess.tabs.filter(function(t){return t&&t.path;});
+  if(!list.length) return;
+  var activePath=sess.activeTabPath||null;
+  var i=0;
+  function next(){
+    if(i>=list.length){
+      /* aktif sekmeyi sec */
+      if(activePath){
+        var tb=null;
+        for(var k=0;k<window.tabs.length;k++){
+          if(window.tabs[k].path===activePath){tb=window.tabs[k];break;}
+        }
+        if(tb) aktifSekmeYap(tb.id);
+      }
+      return;
+    }
+    var t=list[i]; i++;
+    var a=(window.pywebview&&window.pywebview.api)||null;
+    if(!a){return;}
+    a.dosya_oku(t.path).then(function(y){
+      if(y&&y.ok){
+        try{ dosyaYukle(y); }catch(e){}
+      }
+      setTimeout(next,60);
+    }).catch(function(){ setTimeout(next,60); });
+  }
+  next();
+}
+
+/* ── 3) Monaco hazir olunca baslat ── */
+var tries=0;
+var timer=setInterval(function(){
+  tries++;
+  if(tries>40){clearInterval(timer);return;}
+  if(!window.pywebview||!window.pywebview.api) return;
+  if(!window.monaco||!window.editor) return;
+  if(window._sc015Done) return;
+  window._sc015Done=true;
+  clearInterval(timer);
+  var a=window.pywebview.api;
+  a.oturum_yukle().then(function(sess){
+    if(!sess) return;
+    sc015Restore(sess);
+  }).catch(function(){});
+},500);
+
+})();
+</script>
+<!--/SC-015-->
+
 <!--SC-SESSION-014-->
 <script>
 (function(){
