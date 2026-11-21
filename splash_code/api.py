@@ -2700,3 +2700,290 @@ def _sc028_harici_terminal(self, path=None, *_rest):
 
 Api.harici_terminal_ac = _sc028_harici_terminal
 # ===== /SC-TERM-028 =====
+# ===== SC-TOOLS-029 =====
+from . import tools as _sc029_tools
+from .lsp_client import get_lsp as _sc029_get_lsp
+
+
+def _sc029_todo_listele(self, cwd=None, include_project=True):
+    return _sc029_tools.list_todos(cwd or self._cwd, include_project)
+
+
+def _sc029_todo_ekle(self, text, cwd=None):
+    return _sc029_tools.add_todo(text, cwd or self._cwd)
+
+
+def _sc029_todo_toggle(self, tid):
+    return _sc029_tools.toggle_todo(tid)
+
+
+def _sc029_todo_sil(self, tid):
+    return _sc029_tools.delete_todo(tid)
+
+
+def _sc029_sorunlar(self, path, lang, text, uri):
+    lsp_items = []
+    lint_issues = []
+    try:
+        if self.settings.get("diagnosticsEnabled", True):
+            r = self.lsp_diagnostics(lang, uri)
+            lsp_items = (r or {}).get("items") or []
+    except Exception:
+        pass
+    try:
+        fn = getattr(self, "lint_dosya", None)
+        if fn and path:
+            r = fn(path)
+            lint_issues = (r or {}).get("issues") or []
+    except Exception:
+        pass
+    local = _sc029_tools.local_problems(path, lang, text)
+    items = _sc029_tools.normalize_problems(lsp_items, lint_issues, local)
+    return {"ok": True, "items": items}
+
+
+def _sc029_referanslar(self, lang, uri, text, line, col, cwd=None):
+    items = []
+    try:
+        c = _sc029_get_lsp(lang, self._cwd)
+        if c and c.proc and c.initialize():
+            sync = getattr(c, "_sync", None) or c.did_change
+            sync(uri, text)
+            r = c._request("textDocument/references", {
+                "textDocument": {"uri": uri},
+                "position": {"line": line, "character": col},
+                "context": {"includeDeclaration": True},
+            }, timeout=8)
+            res = (r or {}).get("result") or []
+            for it in res:
+                rg = (it.get("range") or {}).get("start") or {}
+                items.append({
+                    "uri": it.get("uri"), "path": it.get("uri"),
+                    "line": rg.get("line", 0) + 1,
+                    "col": rg.get("character", 0), "text": "",
+                })
+    except Exception:
+        pass
+    if not items:
+        word = _sc029_tools.word_at(text, line, col)
+        items = _sc029_tools.find_word_refs(cwd or self._cwd, word)
+        return {"ok": True, "items": items, "engine": "local", "word": word}
+    return {"ok": True, "items": items, "engine": "lsp"}
+
+
+def _sc029_test_baslat(self, cwd=None):
+    return _sc029_tools.TESTS.start(cwd or self._cwd)
+
+
+def _sc029_test_durdur(self):
+    return _sc029_tools.TESTS.stop()
+
+
+def _sc029_test_durum(self):
+    return {"ok": True, "busy": _sc029_tools.TESTS.busy()}
+
+
+Api.todo_listele = _sc029_todo_listele
+Api.todo_ekle = _sc029_todo_ekle
+Api.todo_toggle = _sc029_todo_toggle
+Api.todo_sil = _sc029_todo_sil
+Api.sorunlar_tara = _sc029_sorunlar
+Api.referanslar = _sc029_referanslar
+Api.test_baslat = _sc029_test_baslat
+Api.test_durdur = _sc029_test_durdur
+Api.test_durum = _sc029_test_durum
+# ===== /SC-TOOLS-029 =====
+# ===== SC-TOOLS-030 =====
+from . import tools30 as _t30
+
+_sc30_orig_list_dir = Api._list_dir
+
+
+def _sc30_split_yaz(self, path, content):
+    return _t30.temp_write(path, content)
+
+
+def _sc30_split_sil(self, path):
+    return _t30.temp_delete(path)
+
+
+def _sc30_split_temizle(self, folder=None):
+    return _t30.temp_cleanup(folder or self._cwd)
+
+
+def _sc30_debug_baslat(self, path, cwd=None):
+    return _t30.DEBUG.start(path, cwd or self._cwd)
+
+
+def _sc30_debug_komut(self, text):
+    return _t30.DEBUG.send(text)
+
+
+def _sc30_debug_durdur(self):
+    return _t30.DEBUG.stop()
+
+
+def _sc30_debug_durum(self):
+    return {"ok": True, "busy": _t30.DEBUG.busy(),
+            "file": _t30.DEBUG.file}
+
+
+def _sc30_sorunlar(self, path, lang, text, uri):
+    lsp_items, lint_issues = [], []
+    try:
+        if self.settings.get("diagnosticsEnabled", True):
+            fn = getattr(self, "lsp_diagnostics", None)
+            if fn:
+                r = fn(lang, uri)
+                lsp_items = (r or {}).get("items") or []
+    except Exception:
+        pass
+    try:
+        fn = getattr(self, "lint_dosya", None)
+        if fn and path:
+            r = fn(path)
+            lint_issues = (r or {}).get("issues") or []
+    except Exception:
+        pass
+    try:
+        local = _t30.local_problems(path, lang, text)
+    except Exception:
+        local = []
+    items = _t30.merge_problems(lsp_items, lint_issues, local)
+    return {"ok": True, "items": items,
+            "sources": {"lsp": len(lsp_items), "lint": len(lint_issues),
+                        "local": len(local)}}
+
+
+def _sc30_list_dir(self, cwd, top=False, max_items=5000):
+    out = _sc30_orig_list_dir(self, cwd, top=top, max_items=max_items)
+    try:
+        out = [x for x in out if not _t30.is_temp_name(x.get("name"))]
+    except Exception:
+        pass
+    return out
+
+
+Api.split_temp_yaz = _sc30_split_yaz
+Api.split_temp_sil = _sc30_split_sil
+Api.split_temp_temizle = _sc30_split_temizle
+Api.debug_baslat = _sc30_debug_baslat
+Api.debug_komut = _sc30_debug_komut
+Api.debug_durdur = _sc30_debug_durdur
+Api.debug_durum = _sc30_debug_durum
+Api.sorunlar_tara = _sc30_sorunlar
+Api._list_dir = _sc30_list_dir
+# ===== /SC-TOOLS-030 =====
+# ===== SC-SPLIT-031 =====
+from . import split031 as _s31
+
+_s31_orig_list_dir = Api._list_dir
+
+
+def _s31_calistir(self, src, content, cwd=None):
+    return _s31.RUN.start(src, content, cwd or self._cwd)
+
+
+def _s31_durdur(self):
+    return _s31.RUN.stop()
+
+
+def _s31_durum(self):
+    return {"ok": True, "busy": _s31.RUN.busy()}
+
+
+def _s31_sil(self, path):
+    return _s31.delete_temp(path)
+
+
+def _s31_yaz(self, src, content):
+    return _s31.write_temp(src, content)
+
+
+def _s31_list_dir(self, cwd, top=False, max_items=5000):
+    out = _s31_orig_list_dir(self, cwd, top=top, max_items=max_items)
+    try:
+        out = [x for x in out if not _s31.is_temp(x.get("name"))]
+    except Exception:
+        pass
+    return out
+
+
+Api.split031_calistir = _s31_calistir
+Api.split031_durdur = _s31_durdur
+Api.split031_durum = _s31_durum
+Api.split031_sil = _s31_sil
+Api.split031_yaz = _s31_yaz
+Api._list_dir = _s31_list_dir
+# ===== /SC-SPLIT-031 =====
+# ===== SC-SPLIT-032 =====
+from . import split032 as _s32
+
+_s32_orig_list_dir = Api._list_dir
+
+
+def _s32_run(self, src, content, cwd=None):
+    return _s32.RUN.start(src, content, cwd or self._cwd)
+
+
+def _s32_stop(self):
+    return _s32.RUN.stop()
+
+
+def _s32_del(self, path):
+    return _s32.delete_temp(path)
+
+
+def _s32_status(self):
+    return {"ok": True, "busy": _s32.RUN.busy()}
+
+
+def _s32_list_dir(self, cwd, top=False, max_items=5000):
+    out = _s32_orig_list_dir(self, cwd, top=top, max_items=max_items)
+    try:
+        out = [x for x in out if not _s32.is_temp(x.get("name"))]
+    except Exception:
+        pass
+    return out
+
+
+Api.split032_run = _s32_run
+Api.split032_stop = _s32_stop
+Api.split032_del = _s32_del
+Api.split032_status = _s32_status
+Api._list_dir = _s32_list_dir
+# ===== /SC-SPLIT-032 =====
+# ===== SC-I18N-RT-035 =====
+from . import i18n_rt as _rt35
+
+
+def _sc35_dil_paket(self, lang):
+    try:
+        d = _rt35.pack(lang)
+        d["ok"] = True
+        return d
+    except Exception as e:
+        return {"ok": False, "hata": str(e), "lang": "tr",
+                "phrases": {}, "prefixes": {}, "words": {},
+                "names": _rt35.LANG_TR}
+
+
+def _sc35_dil_ayarla(self, lang):
+    try:
+        lang = (lang or "tr").lower()
+        if lang not in _rt35.LANG_TR:
+            lang = "tr"
+        self.settings["language"] = lang
+        save_settings(self.settings)
+        try:
+            clear_build_cache()
+        except Exception:
+            pass
+        return {"ok": True, "lang": lang}
+    except Exception as e:
+        return {"ok": False, "hata": str(e)}
+
+
+Api.dil_paket = _sc35_dil_paket
+Api.dil_ayarla = _sc35_dil_ayarla
+# ===== /SC-I18N-RT-035 =====
