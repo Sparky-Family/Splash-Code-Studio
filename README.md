@@ -5,7 +5,7 @@
 </p>
 
 <h1 align="center">Splash Code Studio (SC)</h1>
-<p align="center">Sparky Family tarafından geliştirildi.<br>Su gibi akan kod.</p>
+<p align="center">Türk geliştirici tarafından geliştirildi.<br>Sparky Family ürünü.</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-PolyShield-blue" alt="PolyShield" />
