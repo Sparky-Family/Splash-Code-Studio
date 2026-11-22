@@ -443,7 +443,7 @@ body{font-family:var(--font-ui);font-size:13px;color:var(--text);background:var(
   </div>
   <div id="aiPanel">
     <div id="aiHeader"><span>__ICON_ROBOT__</span><span>AI Asistan</span><span class="spacer"></span><span class="provider-badge" id="aiProviderBadge">ayarlanmadı</span><button class="icon-btn" onclick="aiPanelToggle()">__ICON_X__</button></div>
-    <div id="aiMessages"><div class="ai-msg assistant">Merhaba! AI asistanınım. Bir şey sormak için aşağıdaki kutuya yaz.</div></div>
+    <div id="aiMessages"></div>
     <div id="aiInputArea">
       <div id="aiQuickBtns"><button class="ai-quick-btn" onclick="aiQuick('Bu kodu açıkla')">Açıkla</button><button class="ai-quick-btn" onclick="aiQuick('Bu kodu refactor et')">Refactor</button><button class="ai-quick-btn" onclick="aiQuick('Bu kodda bug var mı?')">Bug bul</button><button class="ai-quick-btn" onclick="aiClear()">Temizle</button></div>
       <div id="aiInputRow"><textarea id="aiInput" placeholder="AI'ya bir şey sor..." rows="1"></textarea><button id="aiSendBtn" onclick="aiSend()">__ICON_SEND__</button></div>
@@ -2629,6 +2629,911 @@ require(['vs/editor/editor.main'], function () {
 
 
 </body>
+<!--SC-UI-056-->
+<style>
+/* eski seciciler tamamen sahneden cekilir */
+#scLangSelect,#scLangPick,#sc55Lang{display:none!important}
+
+/* ══ DIL SECICI ══ */
+#sc56Lang{position:relative;display:inline-flex;flex:0 0 auto;margin:0 6px;font-family:var(--font-ui,system-ui,sans-serif)}
+#sc56Btn{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 10px;
+ background:var(--bg,#0d1117);border:1px solid var(--border,#21262d);border-radius:8px;
+ color:var(--text,#e6edf3);font:600 11.5px var(--font-ui,system-ui,sans-serif);cursor:pointer;
+ transition:border-color .16s,box-shadow .16s,background .16s;max-width:158px}
+#sc56Btn:hover{border-color:var(--accent,#2f81f7);background:var(--bg-hover,#161b22)}
+#sc56Btn:focus-visible{outline:none;border-color:var(--accent,#2f81f7);
+ box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#2f81f7) 22%,transparent)}
+#sc56Btn .g{font-size:13px;line-height:1;flex:0 0 auto}
+#sc56Btn .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#sc56Btn .cv{flex:0 0 auto;opacity:.6;transition:transform .18s}
+#sc56Lang.open #sc56Btn .cv{transform:rotate(180deg)}
+#sc56Lang.ok #sc56Btn{border-color:var(--success,#3fb950);
+ box-shadow:0 0 0 3px color-mix(in srgb,var(--success,#3fb950) 24%,transparent)}
+#sc56Tick{position:absolute;right:-6px;top:-6px;width:15px;height:15px;border-radius:50%;
+ background:var(--success,#3fb950);color:#04120a;font-size:9px;font-weight:900;
+ display:grid;place-items:center;opacity:0;transform:scale(.3);transition:.22s;pointer-events:none}
+#sc56Lang.ok #sc56Tick{opacity:1;transform:scale(1)}
+
+#sc56Menu{position:absolute;top:34px;right:0;width:224px;z-index:400;display:none;
+ background:var(--bg-alt,#161b22);border:1px solid var(--border,#21262d);border-radius:11px;
+ box-shadow:0 22px 54px rgba(0,0,0,.62);overflow:hidden}
+#sc56Lang.open #sc56Menu{display:block;animation:sc56in .15s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes sc56in{from{opacity:0;transform:translateY(-6px) scale(.98)}}
+#sc56Search{width:100%;box-sizing:border-box;padding:9px 11px;background:var(--bg,#0d1117);
+ border:none;border-bottom:1px solid var(--border,#21262d);color:var(--text,#e6edf3);
+ font:500 12px var(--font-ui,system-ui,sans-serif);outline:none}
+#sc56Search::placeholder{color:var(--dim,#7d8590)}
+#sc56List{max-height:288px;overflow-y:auto;padding:5px;
+ scrollbar-width:thin;scrollbar-color:var(--accent,#2f81f7) transparent}
+#sc56List::-webkit-scrollbar{width:9px}
+#sc56List::-webkit-scrollbar-track{background:transparent;margin:4px 0}
+#sc56List::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--accent,#2f81f7),#8b5cf6);
+ border-radius:99px;border:2px solid var(--bg-alt,#161b22);background-clip:padding-box}
+#sc56List::-webkit-scrollbar-thumb:hover{background:var(--accent,#2f81f7);background-clip:padding-box}
+.sc56Item{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;cursor:pointer;
+ color:var(--text,#e6edf3);font-size:12.5px;line-height:1.3}
+.sc56Item .code{margin-left:auto;font:600 9.5px var(--font-mono,monospace);color:var(--dim,#7d8590);
+ border:1px solid var(--border,#21262d);border-radius:4px;padding:1px 5px;text-transform:uppercase}
+.sc56Item .mk{width:13px;flex:0 0 13px;color:var(--success,#3fb950);font-size:11px;opacity:0}
+.sc56Item.cur .mk{opacity:1}
+.sc56Item.cur{background:color-mix(in srgb,var(--accent,#2f81f7) 15%,transparent)}
+.sc56Item.act,.sc56Item:hover{background:var(--bg-hover,#1f242c)}
+.sc56Item.act{box-shadow:inset 2px 0 0 var(--accent,#2f81f7)}
+#sc56None{padding:14px;text-align:center;color:var(--dim,#7d8590);font-size:11.5px}
+
+/* ══ AI BOS DURUM ══ */
+#sc56AiEmpty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:10px;padding:34px 22px;text-align:center;margin:auto;min-height:180px;
+ animation:sc56fade .35s ease}
+@keyframes sc56fade{from{opacity:0;transform:translateY(8px)}}
+#sc56AiEmpty .mk{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+ background:color-mix(in srgb,var(--accent,#2f81f7) 13%,transparent);
+ border:1px solid color-mix(in srgb,var(--accent,#2f81f7) 34%,transparent)}
+#sc56AiEmpty .mk svg{width:22px;height:22px;stroke:var(--accent,#2f81f7);fill:none;stroke-width:1.6;
+ stroke-linecap:round;stroke-linejoin:round}
+#sc56AiEmpty b{font-size:13px;font-weight:650;color:var(--text,#e6edf3);letter-spacing:-.01em}
+#sc56AiEmpty span{font-size:11.5px;color:var(--dim,#7d8590);max-width:230px;line-height:1.6}
+#sc56AiEmpty .kb{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:2px}
+#sc56AiEmpty .kb i{font-style:normal;font:600 9.5px var(--font-mono,monospace);color:var(--dim,#7d8590);
+ border:1px solid var(--border,#21262d);border-radius:99px;padding:3px 8px;background:var(--bg,#0d1117)}
+
+/* ══ AI RESIZE ══ */
+#sc56AiRz{flex:0 0 7px;width:7px;cursor:col-resize;display:none;position:relative;z-index:20;
+ background:transparent;touch-action:none}
+#sc56AiRz.on{display:block}
+#sc56AiRz::after{content:"";position:absolute;left:2px;top:0;bottom:0;width:2px;border-radius:2px;
+ background:var(--border,#21262d);transition:background .15s,box-shadow .15s}
+#sc56AiRz:hover::after,#sc56AiRz.drag::after,#sc56AiRz:focus-visible::after{
+ background:var(--accent,#2f81f7);box-shadow:0 0 10px color-mix(in srgb,var(--accent,#2f81f7) 70%,transparent)}
+#sc56AiRz:focus-visible{outline:none}
+#sc56AiBadge{position:fixed;z-index:9999;pointer-events:none;display:none;
+ background:var(--accent,#2f81f7);color:#04121f;font:700 10.5px var(--font-mono,monospace);
+ padding:3px 8px;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+#sc56AiBadge.on{display:block}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__SC056__)return;
+window.__SC056__=true;
+
+var ORDER=["tr","en","de","fr","es","it","pt","ru","ja","ko","zh","ar"];
+var NAMES={tr:"Türkçe",en:"English",de:"Deutsch",fr:"Français",es:"Español",it:"Italiano",
+pt:"Português",ru:"Русский",ja:"日本語",ko:"한국어",zh:"中文",ar:"العربية"};
+/* kendi yeni metinlerimiz icin 12 dil */
+var T56={
+lang:["Dil","Language","Sprache","Langue","Idioma","Lingua","Idioma","Язык","言語","언어","语言","اللغة"],
+search:["Ara...","Search...","Suchen...","Rechercher...","Buscar...","Cerca...","Pesquisar...","Поиск...","検索...","검색...","搜索...","بحث..."],
+none:["Sonuç yok","No results","Keine Ergebnisse","Aucun résultat","Sin resultados","Nessun risultato","Sem resultados","Нет результатов","結果なし","결과 없음","无结果","لا نتائج"],
+aiTitle:["AI asistan hazır","AI assistant ready","KI-Assistent bereit","Assistant IA prêt","Asistente IA listo","Assistente IA pronto","Assistente IA pronto","ИИ-ассистент готов","AIアシスタント準備完了","AI 어시스턴트 준비됨","AI 助手已就绪","مساعد الذكاء جاهز"],
+aiHint:["Aktif dosya hakkında bir şey sor. Bağlam otomatik eklenir.","Ask about the active file. Context is attached automatically.","Frage zur aktiven Datei. Kontext wird automatisch angehängt.","Demandez sur le fichier actif. Le contexte est joint automatiquement.","Chiedi sul file attivo. Il contesto è allegato automaticamente.","Pergunte sobre o arquivo ativo. O contexto é anexado automaticamente.","Спросите об активном файле. Контекст добавляется автоматически.","アクティブなファイルについて質問。コンテキストは自動付加。","활성 파일에 대해 질문하세요. 컨텍스트가 자동 첨부됩니다.","就当前文件提问，上下文会自动附加。","اسأل عن الملف النشط. يُرفق السياق تلقائياً."],
+rz:["Sürükle: AI panelini boyutlandır · çift tık: sıfırla","Drag: resize AI panel · double-click: reset","Ziehen: KI-Panelgröße · Doppelklick: zurücksetzen","Glisser : taille du panneau IA · double-clic : réinit.","Arrastra: tamaño del panel IA · doble clic: reiniciar","Trascina: dimensione pannello IA · doppio clic: reset","Arraste: tamanho do painel IA · duplo clique: redefinir","Перетащите: размер панели ИИ · двойной клик: сброс","ドラッグ：AIパネル幅 · ダブルクリック：リセット","드래그: AI 패널 크기 · 더블클릭: 초기화","拖动：AI 面板宽度 · 双击：重置","اسحب: حجم لوحة الذكاء · نقرة مزدوجة: تصفير"]
+};
+function lang(){
+  try{ return (window.settings&&window.settings.language)||localStorage.getItem("sc_lang")||"tr"; }
+  catch(e){ return "tr"; }
+}
+function t56(k){
+  var a=T56[k]; if(!a)return k;
+  var i=ORDER.indexOf(lang()); if(i<0)i=0;
+  return a[i]||a[0];
+}
+function E(i){return document.getElementById(i);}
+function api(){return (window.pywebview&&window.pywebview.api)||null;}
+function relayout(){ try{ if(window.editor)editor.layout(); }catch(e){}
+  try{ if(window.editor2)editor2.layout(); }catch(e){} }
+
+/* ═════════ 1) SESSIZ BILDIRIM (054 politikasi, yeniden) ═════════ */
+var ALLOW_UNTIL=0;
+var READY=/(hazır|hazir|ready|kuruldu|installed|kullanıma hazır|kullanima hazir)/i;
+var SUBJ=/(lsp|language\s*server|dil\s*sunucusu|dil\s*paketi|language\s*pack|runtime|basedpyright|pyright|pylsp|gopls|rust-analyzer|jdtls|clangd|typescript-language-server|node\.?js|python|golang|\bgo\b|rust|java|jdk|ruby|php|lua|perl|gcc|mingw)/i;
+function allowed(m){
+  if(window.__sc54verbose||window.__sc56verbose)return true;
+  if(Date.now()<ALLOW_UNTIL)return true;
+  var s=String(m==null?"":m);
+  return READY.test(s)&&SUBJ.test(s);
+}
+function gate(){
+  if(typeof window.toast!=="function"||window.toast.__sc56)return;
+  var prev=window.toast;
+  var g=function(m,t,d){
+    if(allowed(m))return prev(m,t,d);
+    try{ if(window.console)console.debug("[silent]",m); }catch(e){}
+    return undefined;
+  };
+  g.__sc56=true; window.toast=g; window.scToast=g;
+  try{ window.sc23Toast=g; }catch(e){}
+}
+function hookInstallers(){
+  var a=api(); if(!a)return false;
+  var hit=false;
+  Object.keys(a).forEach(function(k){
+    if(!/kur|install/i.test(k))return;
+    var f=a[k]; if(typeof f!=="function"||f.__sc56)return;
+    var w=function(){
+      var p=f.apply(this,arguments);
+      try{ if(p&&typeof p.then==="function")
+        p.then(function(r){ if(r&&r.ok)ALLOW_UNTIL=Date.now()+5000; }); }catch(e){}
+      return p;
+    };
+    w.__sc56=true; try{ a[k]=w; hit=true; }catch(e){}
+  });
+  return hit;
+}
+window.scToastVerbose=function(on){ window.__sc56verbose=!!on; window.__sc54verbose=!!on; };
+gate();
+try{ if(window._notifications&&window._notifications.length){
+  window._notifications.length=0; if(window.renderNotif)window.renderNotif(); } }catch(e){}
+var gi=0, gt=setInterval(function(){ gi++; gate(); if(hookInstallers()||gi>60)clearInterval(gt); },250);
+
+/* ═════════ 2) DIL SECICI (ozel listbox) ═════════ */
+var ACT=0, FILTERED=ORDER.slice();
+function currentEngine(){
+  return window.sc55SetLang||window.sc38SetLang||window.sc35SetLang||null;
+}
+function applyLang(l){
+  l=(l||"tr").toLowerCase();
+  if(ORDER.indexOf(l)<0)l="tr";
+  var eng=currentEngine();
+  if(eng){ try{ eng(l,true); }catch(e){ try{ eng(l); }catch(e2){} } }
+  try{ if(window.settings)window.settings.language=l; }catch(e){}
+  try{ localStorage.setItem("sc_lang",l); }catch(e){}
+  var a=api(); if(a&&a.dil_ayarla){ try{ a.dil_ayarla(l); }catch(e){} }
+  window._i18n=window._i18n||{}; window._i18n.lang=l;
+  syncLabel(); paintEmpty(); paintRz();
+  try{ if(window.scI18nApply)window.scI18nApply(); }catch(e){}
+}
+window.scSetLanguage=applyLang;
+window.scChangeLang=applyLang;
+window.sc56SetLang=applyLang;
+
+function syncLabel(){
+  var b=E("sc56Btn"); if(!b)return;
+  var nm=b.querySelector(".nm"); if(nm)nm.textContent=NAMES[lang()]||lang();
+  b.title=t56("lang");
+  var s=E("sc56Search"); if(s)s.placeholder=t56("search");
+}
+function renderList(){
+  var box=E("sc56List"); if(!box)return;
+  var q=(E("sc56Search")&&E("sc56Search").value||"").toLowerCase().trim();
+  FILTERED=ORDER.filter(function(c){
+    if(!q)return true;
+    return c.indexOf(q)>=0||NAMES[c].toLowerCase().indexOf(q)>=0;
+  });
+  if(ACT>=FILTERED.length)ACT=Math.max(0,FILTERED.length-1);
+  if(!FILTERED.length){ box.innerHTML='<div id="sc56None">'+t56("none")+'</div>'; return; }
+  box.innerHTML=FILTERED.map(function(c,i){
+    return '<div class="sc56Item'+(c===lang()?" cur":"")+(i===ACT?" act":"")+'" role="option" '+
+      'aria-selected="'+(c===lang())+'" data-c="'+c+'">'+
+      '<span class="mk">✓</span><span>'+NAMES[c]+'</span><span class="code">'+c+'</span></div>';
+  }).join("");
+  Array.prototype.forEach.call(box.querySelectorAll(".sc56Item"),function(el){
+    el.onmousedown=function(ev){ ev.preventDefault(); };
+    el.onclick=function(){ choose(el.dataset.c); };
+    el.onmouseenter=function(){ ACT=FILTERED.indexOf(el.dataset.c); markActive(); };
+  });
+}
+function markActive(){
+  var box=E("sc56List"); if(!box)return;
+  Array.prototype.forEach.call(box.querySelectorAll(".sc56Item"),function(el,i){
+    el.classList.toggle("act",i===ACT);
+    if(i===ACT){ try{ el.scrollIntoView({block:"nearest"}); }catch(e){} }
+  });
+}
+function openMenu(){
+  var w=E("sc56Lang"); if(!w)return;
+  w.classList.add("open");
+  E("sc56Btn").setAttribute("aria-expanded","true");
+  ACT=Math.max(0,FILTERED.indexOf(lang()));
+  var s=E("sc56Search"); if(s){ s.value=""; }
+  renderList();
+  setTimeout(function(){ if(s)s.focus(); },30);
+}
+function closeMenu(focusBack){
+  var w=E("sc56Lang"); if(!w)return;
+  w.classList.remove("open");
+  E("sc56Btn").setAttribute("aria-expanded","false");
+  if(focusBack){ try{ E("sc56Btn").focus(); }catch(e){} }
+}
+function choose(c){
+  applyLang(c);
+  closeMenu(true);
+  var w=E("sc56Lang");
+  if(w){ w.classList.add("ok"); setTimeout(function(){ w.classList.remove("ok"); },1100); }
+}
+function mountLang(){
+  ["scLangSelect","scLangPick","sc55Lang"].forEach(function(id){
+    var n=E(id); if(n)n.style.display="none";
+  });
+  if(E("sc56Lang"))return;
+  var tb=E("topbar"); if(!tb)return;
+  var w=document.createElement("div");
+  w.id="sc56Lang";
+  w.innerHTML=
+    '<button id="sc56Btn" type="button" aria-haspopup="listbox" aria-expanded="false">'+
+      '<span class="g">🌐</span><span class="nm"></span>'+
+      '<svg class="cv" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
+      'stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'+
+    '</button><i id="sc56Tick">✓</i>'+
+    '<div id="sc56Menu" role="dialog">'+
+      '<input id="sc56Search" type="text" autocomplete="off" spellcheck="false" aria-label="filter">'+
+      '<div id="sc56List" role="listbox"></div>'+
+    '</div>';
+  var sp=tb.querySelector(".spacer");
+  if(sp)tb.insertBefore(w,sp); else tb.appendChild(w);
+  syncLabel(); renderList();
+  E("sc56Btn").onclick=function(ev){
+    ev.stopPropagation();
+    if(w.classList.contains("open"))closeMenu(false); else openMenu();
+  };
+  E("sc56Search").addEventListener("input",function(){ ACT=0; renderList(); });
+  w.addEventListener("keydown",function(ev){
+    var open=w.classList.contains("open");
+    if(ev.key==="Escape"){ if(open){ ev.preventDefault(); closeMenu(true); } return; }
+    if(!open&&(ev.key==="Enter"||ev.key===" "||ev.key==="ArrowDown")){
+      ev.preventDefault(); openMenu(); return;
+    }
+    if(!open)return;
+    if(ev.key==="ArrowDown"){ ev.preventDefault(); ACT=Math.min(FILTERED.length-1,ACT+1); markActive(); }
+    else if(ev.key==="ArrowUp"){ ev.preventDefault(); ACT=Math.max(0,ACT-1); markActive(); }
+    else if(ev.key==="Home"){ ev.preventDefault(); ACT=0; markActive(); }
+    else if(ev.key==="End"){ ev.preventDefault(); ACT=FILTERED.length-1; markActive(); }
+    else if(ev.key==="Enter"){ ev.preventDefault(); if(FILTERED[ACT])choose(FILTERED[ACT]); }
+  });
+  document.addEventListener("mousedown",function(ev){
+    if(!w.contains(ev.target))closeMenu(false);
+  });
+}
+mountLang();
+setTimeout(mountLang,500); setTimeout(mountLang,1600); setTimeout(mountLang,3400);
+setInterval(function(){
+  mountLang();
+  var b=E("sc56Btn"); if(!b)return;
+  var nm=b.querySelector(".nm");
+  if(nm&&nm.textContent!==(NAMES[lang()]||lang()))syncLabel();
+},1200);
+
+/* ═════════ 3) AI PANELI: TEMIZ ACILIS ═════════ */
+var EMPTY_HTML=
+  '<div class="mk"><svg viewBox="0 0 24 24">'+
+  '<path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/>'+
+  '<path d="M18.5 16.5l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></svg></div>'+
+  '<b id="sc56AiT"></b><span id="sc56AiH"></span>'+
+  '<div class="kb"><i>Ctrl+Enter</i><i>Esc</i></div>';
+function msgsBox(){ return E("aiMessages")||E("aiMsgs"); }
+function paintEmpty(){
+  var e=E("sc56AiEmpty"); if(!e)return;
+  var t=E("sc56AiT"), h=E("sc56AiH");
+  if(t)t.textContent=t56("aiTitle");
+  if(h)h.textContent=t56("aiHint");
+}
+function ensureEmpty(){
+  var box=msgsBox(); if(!box)return;
+  var e=E("sc56AiEmpty");
+  if(!e){
+    e=document.createElement("div");
+    e.id="sc56AiEmpty";
+    e.innerHTML=EMPTY_HTML;
+    box.appendChild(e);
+    paintEmpty();
+  }
+  var n=box.querySelectorAll(".ai-msg,.msg").length;
+  e.style.display=n?"none":"flex";
+}
+function wipeAI(){
+  var box=msgsBox(); if(!box)return;
+  Array.prototype.forEach.call(box.querySelectorAll(".ai-msg,.msg"),function(n){ n.remove(); });
+  ensureEmpty();
+}
+var GREET=/^(merhaba|hello|hallo|bonjour|hola|ciao|olá|привет|こんにちは|안녕하세요|你好|مرحبا)/i;
+function sweep(){
+  var box=msgsBox(); if(!box)return;
+  Array.prototype.forEach.call(box.querySelectorAll(".ai-msg,.msg"),function(n){
+    var tx=(n.textContent||"").trim();
+    if(GREET.test(tx)&&tx.length<220)n.remove();
+  });
+  ensureEmpty();
+}
+(function hookAI(){
+  var box=msgsBox();
+  if(!box){ setTimeout(hookAI,400); return; }
+  wipeAI();
+  try{
+    new MutationObserver(function(){ ensureEmpty(); })
+      .observe(box,{childList:true,subtree:false});
+  }catch(e){}
+  var ac=window.aiClear||window.aiTemizle;
+  if(typeof ac==="function"){
+    var w=function(){ var r; try{ r=ac.apply(this,arguments); }catch(e){} wipeAI(); return r; };
+    window.aiClear=w; window.aiTemizle=w;
+  }
+  [200,900,1800,3200,5200].forEach(function(ms){ setTimeout(sweep,ms); });
+})();
+
+/* ═════════ 4) AI PANEL RESIZE ═════════ */
+var MINW=280, DEFW=380;
+function maxW(){ return Math.max(MINW+40, Math.min(760, Math.round(window.innerWidth*0.62))); }
+function panel(){ return E("aiPanel"); }
+function getW(){
+  var v=parseInt(localStorage.getItem("sc_ai_w")||"",10);
+  if(!v||isNaN(v))v=DEFW;
+  return Math.max(MINW,Math.min(maxW(),v));
+}
+function setW(w,save){
+  var p=panel(); if(!p)return;
+  w=Math.max(MINW,Math.min(maxW(),Math.round(w)));
+  p.style.width=w+"px";
+  p.style.flex="0 0 "+w+"px";
+  p.style.minWidth=w+"px";
+  var rz=E("sc56AiRz");
+  if(rz){ rz.setAttribute("aria-valuenow",String(w));
+          rz.setAttribute("aria-valuemin",String(MINW));
+          rz.setAttribute("aria-valuemax",String(maxW())); }
+  if(save){ try{ localStorage.setItem("sc_ai_w",String(w)); }catch(e){} }
+  relayout();
+  return w;
+}
+function paintRz(){ var rz=E("sc56AiRz"); if(rz)rz.title=t56("rz"); }
+function rzVisible(){
+  var p=panel(), rz=E("sc56AiRz"); if(!p||!rz)return;
+  var open=p.classList.contains("open")||getComputedStyle(p).display!=="none";
+  rz.classList.toggle("on",!!open);
+}
+function mountRz(){
+  var p=panel(); if(!p)return;
+  if(!E("sc56AiRz")){
+    var rz=document.createElement("div");
+    rz.id="sc56AiRz";
+    rz.setAttribute("role","separator");
+    rz.setAttribute("aria-orientation","vertical");
+    rz.setAttribute("tabindex","0");
+    rz.title=t56("rz");
+    p.parentNode.insertBefore(rz,p);
+    var badge=document.createElement("div");
+    badge.id="sc56AiBadge";
+    document.body.appendChild(badge);
+
+    var drag=false,sx=0,sw=0,raf=0,pend=null;
+    function frame(){
+      raf=0; if(pend==null)return;
+      var w=setW(pend,false); pend=null;
+      var b=E("sc56AiBadge");
+      if(b)b.textContent=w+" px";
+    }
+    rz.addEventListener("pointerdown",function(ev){
+      ev.preventDefault();
+      drag=true; sx=ev.clientX; sw=p.getBoundingClientRect().width;
+      rz.classList.add("drag");
+      try{ rz.setPointerCapture(ev.pointerId); }catch(e){}
+      document.body.style.userSelect="none";
+      document.body.style.cursor="col-resize";
+      var b=E("sc56AiBadge");
+      if(b){ b.classList.add("on"); b.textContent=Math.round(sw)+" px";
+             b.style.left=(ev.clientX-46)+"px"; b.style.top=(ev.clientY-30)+"px"; }
+    });
+    rz.addEventListener("pointermove",function(ev){
+      if(!drag)return;
+      pend=sw+(sx-ev.clientX);
+      var b=E("sc56AiBadge");
+      if(b){ b.style.left=(ev.clientX-46)+"px"; b.style.top=(ev.clientY-30)+"px"; }
+      if(!raf)raf=requestAnimationFrame(frame);
+    });
+    function stop(ev){
+      if(!drag)return;
+      drag=false;
+      rz.classList.remove("drag");
+      try{ rz.releasePointerCapture(ev.pointerId); }catch(e){}
+      document.body.style.userSelect="";
+      document.body.style.cursor="";
+      var b=E("sc56AiBadge"); if(b)b.classList.remove("on");
+      setW(p.getBoundingClientRect().width,true);
+    }
+    rz.addEventListener("pointerup",stop);
+    rz.addEventListener("pointercancel",stop);
+    rz.addEventListener("dblclick",function(){ setW(DEFW,true); });
+    rz.addEventListener("keydown",function(ev){
+      var cur=p.getBoundingClientRect().width, step=ev.shiftKey?48:16, done=true;
+      if(ev.key==="ArrowLeft")setW(cur+step,true);
+      else if(ev.key==="ArrowRight")setW(cur-step,true);
+      else if(ev.key==="Home")setW(MINW,true);
+      else if(ev.key==="End")setW(maxW(),true);
+      else if(ev.key==="Enter"||ev.key===" ")setW(DEFW,true);
+      else done=false;
+      if(done)ev.preventDefault();
+    });
+  }
+  setW(getW(),false);
+  rzVisible();
+}
+(function bootRz(){
+  if(!panel()){ setTimeout(bootRz,400); return; }
+  mountRz();
+  try{
+    new MutationObserver(function(){ rzVisible(); })
+      .observe(panel(),{attributes:true,attributeFilter:["class","style"]});
+  }catch(e){}
+  window.addEventListener("resize",function(){ setW(getW(),false); rzVisible(); });
+  [300,1200,2600].forEach(function(ms){ setTimeout(function(){ mountRz(); rzVisible(); },ms); });
+})();
+
+/* dil motoru hazir olunca etiketleri tazele */
+setTimeout(function(){ syncLabel(); paintEmpty(); paintRz(); },1500);
+setTimeout(function(){ syncLabel(); paintEmpty(); paintRz(); },3500);
+})();
+</script>
+<!--/SC-UI-056-->
+
+<!--SC-I18N-055-->
+<style>
+#scLangSelect,#scLangPick{display:none!important}
+#sc55Lang{display:inline-flex;align-items:center;gap:6px;margin:0 6px;position:relative;flex:0 0 auto}
+#sc55Lang .g{font-size:13px;line-height:1;opacity:.85}
+#sc55Sel{background:var(--bg);border:1px solid var(--border);color:var(--text);
+ padding:5px 8px;border-radius:7px;font:600 11.5px var(--font-ui);outline:none;cursor:pointer;max-width:130px}
+#sc55Sel:hover{border-color:var(--accent)}
+#sc55Sel:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+#sc55Lang.pulse #sc55Sel{border-color:var(--success);box-shadow:0 0 0 3px color-mix(in srgb,var(--success) 25%,transparent)}
+#sc55Ok{position:absolute;right:-14px;top:50%;transform:translateY(-50%) scale(.4);
+ color:var(--success);font-size:12px;font-style:normal;opacity:0;transition:.25s;pointer-events:none}
+#sc55Lang.pulse #sc55Ok{opacity:1;transform:translateY(-50%) scale(1)}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__SC55__)return;
+window.__SC55__=true;
+
+var ORDER=["en","de","fr","es","it","pt","ru","ja","ko","zh","ar"];
+var NAMES={tr:"Türkçe",en:"English",de:"Deutsch",fr:"Français",es:"Español",it:"Italiano",
+pt:"Português",ru:"Русский",ja:"日本語",ko:"한국어",zh:"中文",ar:"العربية"};
+
+/* ══ GOMULU SOZLUK: TR -> [en,de,fr,es,it,pt,ru,ja,ko,zh,ar] ══ */
+var D={
+"Yeni":["New","Neu","Nouveau","Nuevo","Nuovo","Novo","Новый","新規","새로 만들기","新建","جديد"],
+"Aç":["Open","Öffnen","Ouvrir","Abrir","Apri","Abrir","Открыть","開く","열기","打开","فتح"],
+"Klasör Aç":["Open Folder","Ordner öffnen","Ouvrir le dossier","Abrir carpeta","Apri cartella","Abrir pasta","Открыть папку","フォルダを開く","폴더 열기","打开文件夹","فتح مجلد"],
+"Dosya Aç":["Open File","Datei öffnen","Ouvrir un fichier","Abrir archivo","Apri file","Abrir arquivo","Открыть файл","ファイルを開く","파일 열기","打开文件","فتح ملف"],
+"Kaydet":["Save","Speichern","Enregistrer","Guardar","Salva","Salvar","Сохранить","保存","저장","保存","حفظ"],
+"Farklı Kaydet":["Save As","Speichern unter","Enregistrer sous","Guardar como","Salva con nome","Salvar como","Сохранить как","名前を付けて保存","다른 이름으로 저장","另存为","حفظ باسم"],
+"Çalıştır":["Run","Ausführen","Exécuter","Ejecutar","Esegui","Executar","Запустить","実行","실행","运行","تشغيل"],
+"Durdur":["Stop","Stopp","Arrêter","Detener","Ferma","Parar","Остановить","停止","중지","停止","إيقاف"],
+"Çıktı":["Output","Ausgabe","Sortie","Salida","Output","Saída","Вывод","出力","출력","输出","الإخراج"],
+"Ayarlar":["Settings","Einstellungen","Paramètres","Ajustes","Impostazioni","Configurações","Настройки","設定","설정","设置","الإعدادات"],
+"Tema Galerisi":["Theme Gallery","Design-Galerie","Galerie de thèmes","Galería de temas","Galleria temi","Galeria de temas","Галерея тем","テーマギャラリー","테마 갤러리","主题库","معرض السمات"],
+"Komut Paleti":["Command Palette","Befehlspalette","Palette de commandes","Paleta de comandos","Tavolozza comandi","Paleta de comandos","Палитра команд","コマンドパレット","명령 팔레트","命令面板","لوحة الأوامر"],
+"Hızlı Dosya":["Quick Open","Schnellöffnung","Ouverture rapide","Apertura rápida","Apertura rapida","Abertura rápida","Быстрое открытие","クイックオープン","빠른 열기","快速打开","فتح سريع"],
+"Projede Ara":["Search in Project","Im Projekt suchen","Rechercher dans le projet","Buscar en el proyecto","Cerca nel progetto","Pesquisar no projeto","Поиск в проекте","プロジェクト内検索","프로젝트에서 검색","在项目中搜索","البحث في المشروع"],
+"Bildirimler":["Notifications","Benachrichtigungen","Notifications","Notificaciones","Notifiche","Notificações","Уведомления","通知","알림","通知","الإشعارات"],
+"Bildirim yok":["No notifications","Keine Benachrichtigungen","Aucune notification","Sin notificaciones","Nessuna notifica","Sem notificações","Нет уведомлений","通知なし","알림 없음","无通知","لا إشعارات"],
+"AI Asistan":["AI Assistant","KI-Assistent","Assistant IA","Asistente IA","Assistente IA","Assistente IA","ИИ-ассистент","AIアシスタント","AI 어시스턴트","AI 助手","مساعد الذكاء الاصطناعي"],
+"Gezgin":["Explorer","Explorer","Explorateur","Explorador","Esplora","Explorador","Проводник","エクスプローラー","탐색기","资源管理器","المستكشف"],
+"Dosyalar":["Files","Dateien","Fichiers","Archivos","File","Arquivos","Файлы","ファイル","파일","文件","الملفات"],
+"Karşılama":["Welcome","Willkommen","Bienvenue","Bienvenida","Benvenuto","Bem-vindo","Добро пожаловать","ようこそ","환영","欢迎","مرحبا"],
+"Araçlar":["Tools","Werkzeuge","Outils","Herramientas","Strumenti","Ferramentas","Инструменты","ツール","도구","工具","الأدوات"],
+"Sorunlar":["Problems","Probleme","Problèmes","Problemas","Problemi","Problemas","Проблемы","問題","문제","问题","المشكلات"],
+"Sorun yok":["No problems","Keine Probleme","Aucun problème","Sin problemas","Nessun problema","Sem problemas","Нет проблем","問題なし","문제 없음","无问题","لا مشكلات"],
+"Görevler":["Tasks","Aufgaben","Tâches","Tareas","Attività","Tarefas","Задачи","タスク","작업","任务","المهام"],
+"Referanslar":["References","Referenzen","Références","Referencias","Riferimenti","Referências","Ссылки","参照","참조","引用","المراجع"],
+"Testler":["Tests","Tests","Tests","Pruebas","Test","Testes","Тесты","テスト","테스트","测试","الاختبارات"],
+"Yeniden Adlandır":["Rename","Umbenennen","Renommer","Renombrar","Rinomina","Renomear","Переименовать","名前変更","이름 변경","重命名","إعادة تسمية"],
+"Sil":["Delete","Löschen","Supprimer","Eliminar","Elimina","Excluir","Удалить","削除","삭제","删除","حذف"],
+"Kapat":["Close","Schließen","Fermer","Cerrar","Chiudi","Fechar","Закрыть","閉じる","닫기","关闭","إغلاق"],
+"İptal":["Cancel","Abbrechen","Annuler","Cancelar","Annulla","Cancelar","Отмена","キャンセル","취소","取消","إلغاء"],
+"Tamam":["OK","OK","OK","OK","OK","OK","ОК","OK","확인","确定","موافق"],
+"Evet":["Yes","Ja","Oui","Sí","Sì","Sim","Да","はい","예","是","نعم"],
+"Hayır":["No","Nein","Non","No","No","Não","Нет","いいえ","아니요","否","لا"],
+"Yenile":["Refresh","Aktualisieren","Actualiser","Actualizar","Aggiorna","Atualizar","Обновить","更新","새로 고침","刷新","تحديث"],
+"Yeni Dosya":["New File","Neue Datei","Nouveau fichier","Nuevo archivo","Nuovo file","Novo arquivo","Новый файл","新規ファイル","새 파일","新建文件","ملف جديد"],
+"Yeni Klasör":["New Folder","Neuer Ordner","Nouveau dossier","Nueva carpeta","Nuova cartella","Nova pasta","Новая папка","新規フォルダ","새 폴더","新建文件夹","مجلد جديد"],
+"Yolu Kopyala":["Copy Path","Pfad kopieren","Copier le chemin","Copiar ruta","Copia percorso","Copiar caminho","Копировать путь","パスをコピー","경로 복사","复制路径","نسخ المسار"],
+"Terminalde Aç":["Open in Terminal","Im Terminal öffnen","Ouvrir dans le terminal","Abrir en terminal","Apri nel terminale","Abrir no terminal","Открыть в терминале","ターミナルで開く","터미널에서 열기","在终端中打开","فتح في الطرفية"],
+"Diğerlerini Kapat":["Close Others","Andere schließen","Fermer les autres","Cerrar otros","Chiudi altri","Fechar outros","Закрыть другие","他を閉じる","다른 탭 닫기","关闭其他","إغلاق الآخرين"],
+"Hepsini Kapat":["Close All","Alle schließen","Tout fermer","Cerrar todos","Chiudi tutti","Fechar todos","Закрыть все","すべて閉じる","모두 닫기","关闭全部","إغلاق الكل"],
+"Düzen":["Edit","Bearbeiten","Édition","Editar","Modifica","Editar","Правка","編集","편집","编辑","تحرير"],
+"Geri Al":["Undo","Rückgängig","Annuler","Deshacer","Annulla","Desfazer","Отмена","元に戻す","실행 취소","撤销","تراجع"],
+"Yinele":["Redo","Wiederholen","Rétablir","Rehacer","Ripeti","Refazer","Повтор","やり直し","다시 실행","重做","إعادة"],
+"Kes":["Cut","Ausschneiden","Couper","Cortar","Taglia","Recortar","Вырезать","切り取り","잘라내기","剪切","قص"],
+"Kopyala":["Copy","Kopieren","Copier","Copiar","Copia","Copiar","Копировать","コピー","복사","复制","نسخ"],
+"Yapıştır":["Paste","Einfügen","Coller","Pegar","Incolla","Colar","Вставить","貼り付け","붙여넣기","粘贴","لصق"],
+"Tümünü Seç":["Select All","Alles auswählen","Tout sélectionner","Seleccionar todo","Seleziona tutto","Selecionar tudo","Выделить все","すべて選択","모두 선택","全选","تحديد الكل"],
+"Bul":["Find","Suchen","Rechercher","Buscar","Trova","Localizar","Найти","検索","찾기","查找","بحث"],
+"Değiştir":["Replace","Ersetzen","Remplacer","Reemplazar","Sostituisci","Substituir","Заменить","置換","바꾸기","替换","استبدال"],
+"Satıra Git":["Go to Line","Gehe zu Zeile","Aller à la ligne","Ir a la línea","Vai alla riga","Ir para linha","Перейти к строке","行へ移動","줄로 이동","转到行","انتقال إلى سطر"],
+"Kaydedildi":["Saved","Gespeichert","Enregistré","Guardado","Salvato","Salvo","Сохранено","保存しました","저장됨","已保存","تم الحفظ"],
+"Oluşturuldu":["Created","Erstellt","Créé","Creado","Creato","Criado","Создано","作成しました","생성됨","已创建","تم الإنشاء"],
+"Silindi":["Deleted","Gelöscht","Supprimé","Eliminado","Eliminato","Excluído","Удалено","削除しました","삭제됨","已删除","تم الحذف"],
+"Klasör açılmadı":["No folder opened","Kein Ordner geöffnet","Aucun dossier ouvert","Ninguna carpeta abierta","Nessuna cartella aperta","Nenhuma pasta aberta","Папка не открыта","フォルダ未開","폴더 없음","未打开文件夹","لم يتم فتح مجلد"],
+"Klasör boş":["Folder is empty","Ordner ist leer","Le dossier est vide","La carpeta está vacía","La cartella è vuota","A pasta está vazia","Папка пуста","フォルダは空です","폴더가 비어 있음","文件夹为空","المجلد فارغ"],
+"Yükleniyor...":["Loading...","Wird geladen...","Chargement...","Cargando...","Caricamento...","Carregando...","Загрузка...","読み込み中...","로딩 중...","加载中...","جارٍ التحميل..."],
+"Proje yok":["No project","Kein Projekt","Aucun projet","Sin proyecto","Nessun progetto","Sem projeto","Нет проекта","プロジェクトなし","프로젝트 없음","无项目","لا مشروع"],
+"Değişiklik yok":["No changes","Keine Änderungen","Aucune modification","Sin cambios","Nessuna modifica","Sem alterações","Нет изменений","変更なし","변경 없음","无更改","لا تغييرات"],
+"Hazır":["Ready","Bereit","Prêt","Listo","Pronto","Pronto","Готово","準備完了","준비 완료","就绪","جاهز"],
+"git yok":["no git","kein Git","pas de git","sin git","nessun git","sem git","нет git","gitなし","git 없음","无 git","لا git"],
+"Adsız":["Untitled","Unbenannt","Sans titre","Sin título","Senza titolo","Sem título","Без имени","無題","제목 없음","未命名","بلا عنوان"],
+"Sonuç yok":["No results","Keine Ergebnisse","Aucun résultat","Sin resultados","Nessun risultato","Sem resultados","Нет результатов","結果なし","결과 없음","无结果","لا نتائج"],
+"Sembol yok":["No symbols","Keine Symbole","Aucun symbole","Sin símbolos","Nessun simbolo","Sem símbolos","Нет символов","シンボルなし","심볼 없음","无符号","لا رموز"],
+"Genel":["General","Allgemein","Général","General","Generale","Geral","Общие","一般","일반","常规","عام"],
+"Editör":["Editor","Editor","Éditeur","Editor","Editor","Editor","Редактор","エディター","편집기","编辑器","المحرر"],
+"Görünüm":["Appearance","Erscheinungsbild","Apparence","Apariencia","Aspetto","Aparência","Внешний вид","外観","모양","外观","المظهر"],
+"Oturum":["Session","Sitzung","Session","Sesión","Sessione","Sessão","Сессия","セッション","세션","会话","الجلسة"],
+"Sağlayıcı":["Provider","Anbieter","Fournisseur","Proveedor","Fornitore","Provedor","Провайдер","プロバイダー","제공자","提供商","المزود"],
+"Kapalı":["Off","Aus","Désactivé","Apagado","Spento","Desligado","Выкл","オフ","끄기","关闭","إيقاف"],
+"Dikey":["Vertical","Vertikal","Vertical","Vertical","Verticale","Vertical","Вертикально","縦","세로","垂直","عمودي"],
+"Yatay":["Horizontal","Horizontal","Horizontal","Horizontal","Orizzontale","Horizontal","Горизонтально","横","가로","水平","أفقي"],
+"Yazı Tipi":["Font Family","Schriftart","Police","Fuente","Font","Fonte","Шрифт","フォント","글꼴","字体","الخط"],
+"Özel Vurgu":["Custom Accent","Eigene Akzentfarbe","Accent personnalisé","Acento personalizado","Accento personalizzato","Acento personalizado","Свой акцент","カスタムアクセント","사용자 강조색","自定义强调色","لون مخصص"],
+"Dosya İkonları":["File Icons","Datei-Symbole","Icônes de fichiers","Iconos de archivos","Icone file","Ícones de arquivos","Иконки файлов","ファイルアイコン","파일 아이콘","文件图标","أيقونات الملفات"],
+"Düzenle":["Edit","Bearbeiten","Modifier","Editar","Modifica","Editar","Изменить","編集","편집","编辑","تعديل"],
+"Sıfırla":["Reset","Zurücksetzen","Réinitialiser","Restablecer","Reimposta","Redefinir","Сброс","リセット","초기화","重置","إعادة تعيين"],
+"Otomatik kaydet":["Auto save","Automatisch speichern","Sauvegarde auto","Guardado automático","Salvataggio automatico","Salvamento automático","Автосохранение","自動保存","자동 저장","自动保存","حفظ تلقائي"],
+"Oturumu hatırla":["Remember session","Sitzung merken","Se souvenir de la session","Recordar sesión","Ricorda sessione","Lembrar sessão","Запомнить сессию","セッションを記憶","세션 기억","记住会话","تذكر الجلسة"],
+"Proje klasörünü hatırla":["Remember project folder","Projektordner merken","Se souvenir du dossier","Recordar carpeta","Ricorda cartella","Lembrar pasta","Запомнить папку проекта","プロジェクトフォルダを記憶","프로젝트 폴더 기억","记住项目文件夹","تذكر مجلد المشروع"],
+"Karşılama sayfası":["Welcome page","Willkommensseite","Page d'accueil","Página de bienvenida","Pagina di benvenuto","Página de boas-vindas","Страница приветствия","ウェルカムページ","환영 페이지","欢迎页面","صفحة الترحيب"],
+"Çalıştırmadan önce kaydet":["Save before run","Vor Ausführung speichern","Enregistrer avant exécution","Guardar antes de ejecutar","Salva prima di eseguire","Salvar antes de executar","Сохранить перед запуском","実行前に保存","실행 전 저장","运行前保存","حفظ قبل التشغيل"],
+"Çalıştırma yeri":["Run location","Ausführungsort","Lieu d'exécution","Lugar de ejecución","Posizione esecuzione","Local de execução","Место запуска","実行場所","실행 위치","运行位置","موقع التشغيل"],
+"Terminal modu":["Terminal mode","Terminal-Modus","Mode terminal","Modo terminal","Modalità terminale","Modo terminal","Режим терминала","ターミナルモード","터미널 모드","终端模式","وضع الطرفية"],
+"LSP Desteği":["LSP Support","LSP-Unterstützung","Support LSP","Soporte LSP","Supporto LSP","Suporte LSP","Поддержка LSP","LSPサポート","LSP 지원","LSP 支持","دعم LSP"],
+"Kayıtta biçimlendir":["Format on save","Beim Speichern formatieren","Formater à l'enregistrement","Formatear al guardar","Formatta al salvataggio","Formatar ao salvar","Форматировать при сохранении","保存時にフォーマット","저장 시 포맷","保存时格式化","تنسيق عند الحفظ"],
+"Kaydederken hata kontrolü":["Check errors on save","Fehler beim Speichern prüfen","Vérifier les erreurs","Comprobar errores al guardar","Controlla errori al salvataggio","Verificar erros ao salvar","Проверять ошибки при сохранении","保存時にエラー検査","저장 시 오류 검사","保存时检查错误","فحص الأخطاء عند الحفظ"],
+"Font boyutu":["Font size","Schriftgröße","Taille de police","Tamaño de fuente","Dimensione font","Tamanho da fonte","Размер шрифта","フォントサイズ","글꼴 크기","字号","حجم الخط"],
+"Geri kaydırma (satır)":["Scrollback (lines)","Scrollback (Zeilen)","Défilement (lignes)","Desplazamiento (líneas)","Scorrimento (righe)","Rolagem (linhas)","Прокрутка (строки)","スクロールバック（行）","스크롤백(줄)","回滚（行）","التمرير (أسطر)"],
+"Açıkla":["Explain","Erklären","Expliquer","Explicar","Spiega","Explicar","Объяснить","説明","설명","解释","شرح"],
+"Temizle":["Clear","Löschen","Effacer","Limpiar","Cancella","Limpar","Очистить","クリア","지우기","清除","مسح"],
+"Bug bul":["Find bugs","Fehler finden","Trouver les bugs","Buscar bugs","Trova bug","Encontrar bugs","Найти баги","バグ検索","버그 찾기","查找 Bug","البحث عن أخطاء"],
+"Başla":["Get Started","Erste Schritte","Commencer","Comenzar","Inizia","Começar","Начать","始める","시작하기","开始","ابدأ"],
+"Klavye Kısayolları":["Keyboard Shortcuts","Tastenkombinationen","Raccourcis clavier","Atajos de teclado","Scorciatoie","Atalhos de teclado","Горячие клавиши","キーボードショートカット","키보드 단축키","键盘快捷键","اختصارات لوحة المفاتيح"],
+"Yakın Zamanda Açılanlar":["Recent Files","Zuletzt geöffnet","Fichiers récents","Archivos recientes","File recenti","Arquivos recentes","Недавние файлы","最近のファイル","최근 파일","最近文件","الملفات الأخيرة"],
+"Henüz dosya açılmadı.":["No files opened yet.","Noch keine Dateien geöffnet.","Aucun fichier ouvert.","Aún no hay archivos.","Nessun file aperto.","Nenhum arquivo aberto.","Файлы не открывались.","まだファイルがありません。","아직 파일이 없습니다.","尚未打开文件。","لم تُفتح ملفات بعد."],
+"Modern, hızlı ve AI destekli kod editörü":["Modern, fast, AI-powered code editor","Moderner, schneller KI-Editor","Éditeur moderne, rapide et IA","Editor moderno, rápido y con IA","Editor moderno, veloce e con IA","Editor moderno, rápido e com IA","Современный быстрый редактор с ИИ","モダンで高速なAIコードエディター","현대적이고 빠른 AI 코드 편집기","现代、快速、AI 驱动的代码编辑器","محرر أكواد حديث وسريع بالذكاء الاصطناعي"],
+"Aranacak metin...":["Search text...","Suchtext...","Texte à rechercher...","Texto a buscar...","Testo da cercare...","Texto a pesquisar...","Текст для поиска...","検索テキスト...","검색 텍스트...","搜索文本...","نص البحث..."],
+"Dosya ara...":["Search files...","Dateien suchen...","Rechercher des fichiers...","Buscar archivos...","Cerca file...","Pesquisar arquivos...","Поиск файлов...","ファイル検索...","파일 검색...","搜索文件...","بحث الملفات..."],
+"Komut ara...":["Search commands...","Befehle suchen...","Rechercher des commandes...","Buscar comandos...","Cerca comandi...","Pesquisar comandos...","Поиск команд...","コマンド検索...","명령 검색...","搜索命令...","بحث الأوامر..."],
+"Tema ara...":["Search themes...","Designs suchen...","Rechercher des thèmes...","Buscar temas...","Cerca temi...","Pesquisar temas...","Поиск тем...","テーマ検索...","테마 검색...","搜索主题...","بحث السمات..."],
+"Ayar ara...":["Search settings...","Einstellungen suchen...","Rechercher des paramètres...","Buscar ajustes...","Cerca impostazioni...","Pesquisar configurações...","Поиск настроек...","設定検索...","설정 검색...","搜索设置...","بحث الإعدادات..."],
+"Commit mesajı...":["Commit message...","Commit-Nachricht...","Message de commit...","Mensaje de commit...","Messaggio di commit...","Mensagem de commit...","Сообщение коммита...","コミットメッセージ...","커밋 메시지...","提交信息...","رسالة الالتزام..."],
+"AI'ya bir şey sor...":["Ask AI anything...","KI etwas fragen...","Demandez à l'IA...","Pregunta a la IA...","Chiedi all'IA...","Pergunte à IA...","Спросите ИИ...","AIに質問...","AI에게 질문...","向 AI 提问...","اسأل الذكاء الاصطناعي..."],
+"Komut yaz, Enter...":["Type a command, Enter...","Befehl eingeben, Enter...","Tapez une commande, Entrée...","Escribe un comando, Enter...","Scrivi un comando, Invio...","Digite um comando, Enter...","Введите команду, Enter...","コマンドを入力、Enter...","명령 입력, Enter...","输入命令，回车...","اكتب أمراً، Enter..."],
+"Yeni (Ctrl+N)":["New (Ctrl+N)","Neu (Strg+N)","Nouveau (Ctrl+N)","Nuevo (Ctrl+N)","Nuovo (Ctrl+N)","Novo (Ctrl+N)","Новый (Ctrl+N)","新規 (Ctrl+N)","새로 (Ctrl+N)","新建 (Ctrl+N)","جديد (Ctrl+N)"],
+"Aç (Ctrl+O)":["Open (Ctrl+O)","Öffnen (Strg+O)","Ouvrir (Ctrl+O)","Abrir (Ctrl+O)","Apri (Ctrl+O)","Abrir (Ctrl+O)","Открыть (Ctrl+O)","開く (Ctrl+O)","열기 (Ctrl+O)","打开 (Ctrl+O)","فتح (Ctrl+O)"],
+"Kaydet (Ctrl+S)":["Save (Ctrl+S)","Speichern (Strg+S)","Enregistrer (Ctrl+S)","Guardar (Ctrl+S)","Salva (Ctrl+S)","Salvar (Ctrl+S)","Сохранить (Ctrl+S)","保存 (Ctrl+S)","저장 (Ctrl+S)","保存 (Ctrl+S)","حفظ (Ctrl+S)"],
+"Çalıştır (F5)":["Run (F5)","Ausführen (F5)","Exécuter (F5)","Ejecutar (F5)","Esegui (F5)","Executar (F5)","Запустить (F5)","実行 (F5)","실행 (F5)","运行 (F5)","تشغيل (F5)"],
+"Dikey Böl":["Split Vertical","Vertikal teilen","Diviser verticalement","Dividir vertical","Dividi verticale","Dividir vertical","Разделить вертикально","縦に分割","세로 분할","垂直分屏","تقسيم عمودي"],
+"Bir proje klasörü açmak için yukarıdaki klasör ikonuna tıkla.":["Click the folder icon above to open a project folder.","Klicke oben auf das Ordner-Symbol.","Cliquez sur l'icône de dossier ci-dessus.","Haz clic en el icono de carpeta de arriba.","Clicca l'icona della cartella in alto.","Clique no ícone de pasta acima.","Нажмите значок папки выше.","上のフォルダアイコンをクリック。","위 폴더 아이콘을 누르세요.","点击上方文件夹图标。","انقر أيقونة المجلد أعلاه."],
+"Git deposu değil veya git yok":["Not a git repository or git not found","Kein Git-Repository oder Git fehlt","Pas un dépôt Git ou Git introuvable","No es repositorio Git","Non è un repository Git","Não é repositório Git","Не репозиторий Git","Gitリポジトリではありません","Git 저장소가 아닙니다","不是 Git 仓库","ليس مستودع Git"],
+"Eşleşen dosya yok":["No matching files","Keine passenden Dateien","Aucun fichier correspondant","Sin archivos coincidentes","Nessun file corrispondente","Sem arquivos correspondentes","Нет подходящих файлов","一致するファイルなし","일치하는 파일 없음","无匹配文件","لا ملفات مطابقة"],
+"Proje açın ve metin girin":["Open a project and type to search","Projekt öffnen und Text eingeben","Ouvrez un projet et saisissez","Abre un proyecto y escribe","Apri un progetto e digita","Abra um projeto e digite","Откройте проект и введите текст","プロジェクトを開いて入力","프로젝트를 열고 입력","打开项目并输入","افتح مشروعًا واكتب"],
+"Uzantı → ikon eşlemesi. Değişiklikler anında kaydedilir.":["Extension → icon mapping. Changes save instantly.","Erweiterung → Symbol. Sofort gespeichert.","Extension → icône. Enregistré instantanément.","Extensión → icono. Guardado al instante.","Estensione → icona. Salvataggio immediato.","Extensão → ícone. Salvo na hora.","Расширение → значок. Сохраняется сразу.","拡張子→アイコン。即時保存。","확장자→아이콘. 즉시 저장.","扩展名→图标，立即保存。","الامتداد ← الأيقونة. حفظ فوري."],
+"Dosya yok":["No file","Keine Datei","Aucun fichier","Sin archivo","Nessun file","Sem arquivo","Нет файла","ファイルなし","파일 없음","无文件","لا ملف"],
+"Hata":["Error","Fehler","Erreur","Error","Errore","Erro","Ошибка","エラー","오류","错误","خطأ"],
+"Uyarı":["Warning","Warnung","Avertissement","Advertencia","Avviso","Aviso","Предупреждение","警告","경고","警告","تحذير"],
+"Bilgi":["Info","Info","Info","Info","Info","Info","Инфо","情報","정보","信息","معلومات"],
+"Kuruluyor...":["Installing...","Wird installiert...","Installation...","Instalando...","Installazione...","Instalando...","Установка...","インストール中...","설치 중...","安装中...","جارٍ التثبيت..."],
+"Bir daha sorma":["Don't ask again","Nicht mehr fragen","Ne plus demander","No volver a preguntar","Non chiedere più","Não perguntar de novo","Больше не спрашивать","今後確認しない","다시 묻지 않음","不再询问","لا تسأل مجدداً"],
+"Tekrar Dene":["Try Again","Erneut versuchen","Réessayer","Reintentar","Riprova","Tentar novamente","Повторить","再試行","다시 시도","重试","إعادة المحاولة"],
+"Dosya adı:":["File name:","Dateiname:","Nom du fichier :","Nombre del archivo:","Nome del file:","Nome do arquivo:","Имя файла:","ファイル名:","파일 이름:","文件名：","اسم الملف:"],
+"Klasör adı:":["Folder name:","Ordnername:","Nom du dossier :","Nombre de la carpeta:","Nome della cartella:","Nome da pasta:","Имя папки:","フォルダ名:","폴더 이름:","文件夹名：","اسم المجلد:"],
+"Yeni ad:":["New name:","Neuer Name:","Nouveau nom :","Nuevo nombre:","Nuovo nome:","Novo nome:","Новое имя:","新しい名前:","새 이름:","新名称：","اسم جديد:"]
+};
+var PRE={
+"Hata: ":["Error: ","Fehler: ","Erreur : ","Error: ","Errore: ","Erro: ","Ошибка: ","エラー: ","오류: ","错误：","خطأ: "],
+"Tema: ":["Theme: ","Design: ","Thème : ","Tema: ","Tema: ","Tema: ","Тема: ","テーマ: ","테마: ","主题：","السمة: "],
+"İkon paketi: ":["Icon pack: ","Symbolpaket: ","Pack d'icônes : ","Paquete de iconos: ","Pacchetto icone: ","Pacote de ícones: ","Набор иконок: ","アイコンパック: ","아이콘 팩: ","图标包：","حزمة الأيقونات: "],
+"Terminal: ":["Terminal: ","Terminal: ","Terminal : ","Terminal: ","Terminale: ","Terminal: ","Терминал: ","ターミナル: ","터미널: ","终端：","الطرفية: "],
+"Split: ":["Split: ","Split: ","Split : ","Split: ","Split: ","Split: ","Split: ","分割: ","분할: ","分屏：","تقسيم: "],
+"Breakpoint: satır ":["Breakpoint: line ","Haltepunkt: Zeile ","Point d'arrêt : ligne ","Punto: línea ","Breakpoint: riga ","Breakpoint: linha ","Точка: строка ","ブレークポイント: 行 ","중단점: 줄 ","断点：行 ","نقطة: سطر "]
+};
+var SUF={
+" referans bulundu":[" references found"," Referenzen gefunden"," références trouvées"," referencias encontradas"," riferimenti trovati"," referências encontradas"," найдено ссылок"," 件の参照","개 참조"," 个引用"," مراجع"],
+" sonuç bulundu":[" results found"," Ergebnisse gefunden"," résultats trouvés"," resultados encontrados"," risultati trovati"," resultados encontrados"," найдено результатов"," 件の結果","개 결과"," 个结果"," نتائج"],
+" eklendi":[" added"," hinzugefügt"," ajouté"," añadido"," aggiunto"," adicionado"," добавлено"," 追加"," 추가됨"," 已添加"," أُضيف"],
+" silindi":[" removed"," entfernt"," supprimé"," eliminado"," rimosso"," removido"," удалено"," 削除"," 제거됨"," 已移除"," أُزيل"]
+};
+var WORD={
+"satır":["lines","Zeilen","lignes","líneas","righe","linhas","строк","行","줄","行","أسطر"],
+"karakter":["characters","Zeichen","caractères","caracteres","caratteri","caracteres","символов","文字","자","字符","حرف"]
+};
+
+var LANG="tr";
+try{ LANG=(window.settings&&window.settings.language)||localStorage.getItem("sc_lang")||"tr"; }catch(e){}
+if(LANG!=="tr"&&ORDER.indexOf(LANG)<0)LANG="tr";
+
+function idx(){ return ORDER.indexOf(LANG); }
+function tr(s){
+  if(LANG==="tr"||s==null)return s;
+  var i=idx(); if(i<0)return s;
+  var raw=String(s), key=raw.trim();
+  if(!key)return s;
+  if(D[key])return raw.replace(key,D[key][i]);
+  var out=raw,k;
+  for(k in PRE){ if(key.indexOf(k)===0){ out=raw.replace(k,PRE[k][i]); break; } }
+  for(k in SUF){ if(key.length>k.length&&key.slice(-k.length)===k){ out=out.slice(0,out.length-k.length)+SUF[k][i]; break; } }
+  for(k in WORD){ if(out.indexOf(k)>=0)out=out.split(k).join(WORD[k][i]); }
+  return out;
+}
+/* eski yardimcilari da yeni motora bagla */
+window.scTr=tr; window.scT=tr; window.scTr39=tr; window.scTrMsg=function(k){return tr(k);};
+window.scTermNorm=tr; window.sc41Norm=tr; window.sc40TermTr=tr;
+
+var SKIP=".monaco-editor,.xterm,pre,code,#runOutput,#sc31Out,#sc32Out,#sc30DbgOut,#sc30TestOut,.ai-msg,.tree-name,.tab-name,#sc31Name,#sc32Name,.hit-text";
+function skip(n){ try{ return !!(n&&n.closest&&n.closest(SKIP)); }catch(e){ return false; } }
+var AT=["placeholder","title","aria-label"];
+function dText(n){
+  var v=n.nodeValue; if(!v||!v.trim())return;
+  if(n.__l55===LANG&&n.__o55===v)return;
+  var t=tr(v); n.__l55=LANG; n.__o55=t;
+  if(t!==v)n.nodeValue=t;
+}
+function dAttr(el,a){
+  var v=el.getAttribute(a); if(!v||!v.trim())return;
+  var st=el.__a55||(el.__a55={}); var r=st[a];
+  if(r&&r.l===LANG&&r.o===v)return;
+  var t=tr(v); st[a]={l:LANG,o:t};
+  if(t!==v)el.setAttribute(a,t);
+}
+var busy=false,raf=0;
+function walk(root){
+  if(!root)return;
+  if(root.nodeType===3){ if(!skip(root.parentElement))dText(root); return; }
+  if(root.nodeType!==1&&root.nodeType!==9)return;
+  if(root.nodeType===1&&skip(root))return;
+  try{
+    var tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null,false),n;
+    while((n=tw.nextNode())){ if(!skip(n.parentElement))dText(n); }
+  }catch(e){}
+  var els=[]; try{ els=root.querySelectorAll?root.querySelectorAll("*"):[]; }catch(e){}
+  for(var i=0;i<els.length;i++){
+    var el=els[i]; if(skip(el))continue;
+    for(var j=0;j<AT.length;j++)dAttr(el,AT[j]);
+    if(el.tagName==="OPTION"&&!el.hasAttribute("data-keep")){
+      var ov=el.textContent,ot=tr(ov); if(ot!==ov)el.textContent=ot;
+    }
+    if(el.tagName==="INPUT"&&(el.type==="button"||el.type==="submit")){
+      var vv=el.value,tt=tr(vv); if(tt!==vv)el.value=tt;
+    }
+  }
+  if(root.nodeType===1)for(var k=0;k<AT.length;k++)dAttr(root,AT[k]);
+}
+function apply(){
+  if(busy)return; busy=true;
+  try{
+    walk(document.body);
+    document.documentElement.setAttribute("lang",LANG);
+    document.documentElement.dir="ltr";
+    var s=document.getElementById("sc55Sel"); if(s&&s.value!==LANG)s.value=LANG;
+  }catch(e){}
+  busy=false;
+}
+function sched(){ if(raf)return; raf=requestAnimationFrame(function(){ raf=0; apply(); }); }
+window.scI18nApply=sched;
+
+function refreshSurfaces(){
+  ["renderNotif","updateFileSize","gitYenile","renderTabs","scApplyI18n"].forEach(function(f){
+    try{ if(typeof window[f]==="function")window[f](); }catch(e){}
+  });
+  try{ if(window._cwd&&window.refreshTree)window.refreshTree(); }catch(e){}
+  try{ var w=document.getElementById("welcomeView");
+       if(w&&w.classList.contains("active")&&window.showWelcome)window.showWelcome(); }catch(e){}
+  try{ var c=document.getElementById("commandPalette");
+       if(c&&c.classList.contains("open")&&window.renderCmdPalette){
+         var i=document.getElementById("cmdPaletteInput");
+         window.renderCmdPalette(i?i.value:""); } }catch(e){}
+  sched();
+}
+
+function pulse(){
+  var w=document.getElementById("sc55Lang"); if(!w)return;
+  w.classList.add("pulse");
+  setTimeout(function(){ w.classList.remove("pulse"); },1100);
+}
+
+function setLang(l,quiet){
+  l=(l||"tr").toLowerCase();
+  if(l!=="tr"&&ORDER.indexOf(l)<0)l="tr";
+  LANG=l;
+  try{ if(window.settings)window.settings.language=l; }catch(e){}
+  try{ localStorage.setItem("sc_lang",l); }catch(e){}
+  window._i18n=window._i18n||{}; window._i18n.lang=l;
+  var a=(window.pywebview&&window.pywebview.api)||null;
+  if(a&&a.dil_ayarla){ try{ a.dil_ayarla(l); }catch(e){} }
+  /* cache'i temizle ki tekrar ceiri yapilsin */
+  try{
+    document.querySelectorAll("*").forEach(function(n){
+      if(n.__l55!==undefined){ n.__l55=undefined; n.__o55=undefined; }
+      if(n.__a55)n.__a55={};
+    });
+  }catch(e){}
+  refreshSurfaces();
+  apply();
+  if(!quiet)pulse();
+}
+window.scSetLanguage=setLang;
+window.scChangeLang=setLang;
+window.sc38SetLang=setLang;
+window.sc35SetLang=setLang;
+window.sc55SetLang=setLang;
+
+/* ══ TEK SECICI ══ */
+function killOthers(){
+  ["scLangSelect","scLangPick"].forEach(function(id){
+    var n=document.getElementById(id);
+    if(n&&n.parentNode)n.parentNode.removeChild(n);
+  });
+}
+function mount(){
+  killOthers();
+  if(document.getElementById("sc55Lang"))return;
+  var tb=document.getElementById("topbar"); if(!tb)return;
+  var w=document.createElement("div");
+  w.id="sc55Lang";
+  w.innerHTML='<span class="g">🌐</span><select id="sc55Sel"></select><i id="sc55Ok">✓</i>';
+  var sp=tb.querySelector(".spacer");
+  if(sp)tb.insertBefore(w,sp); else tb.appendChild(w);
+  var s=document.getElementById("sc55Sel");
+  Object.keys(NAMES).forEach(function(c){
+    var o=document.createElement("option");
+    o.value=c; o.textContent=NAMES[c]; o.setAttribute("data-keep","1");
+    s.appendChild(o);
+  });
+  s.value=LANG;
+  s.addEventListener("change",function(){ setLang(this.value,false); });
+}
+mount();
+setTimeout(mount,600); setTimeout(mount,1800); setTimeout(mount,3600);
+
+var moT=null;
+try{
+  new MutationObserver(function(){
+    if(busy)return;
+    if(moT)return;
+    moT=setTimeout(function(){ moT=null; killOthers(); mount(); sched(); },120);
+  }).observe(document.body,{childList:true,subtree:true,characterData:true,
+    attributes:true,attributeFilter:["placeholder","title","aria-label"]});
+}catch(e){}
+
+function boot(){
+  mount();
+  setLang(LANG,true);
+  setTimeout(function(){ apply(); },800);
+  setTimeout(function(){ refreshSurfaces(); },2200);
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);
+else boot();
+window.addEventListener("pywebviewready",function(){ setTimeout(function(){ setLang(LANG,true); },200); });
+})();
+</script>
+<!--/SC-I18N-055-->
+
+
+
+<!--SC-CRASH-053-->
+<script>
+(function(){
+'use strict';
+if(window.__SC053__)return;
+window.__SC053__=true;
+
+var LAST={key:'',t:0};
+function api53(){return (window.pywebview&&window.pywebview.api)||null;}
+function logCrash(where,msg){
+  try{
+    var line='['+new Date().toISOString()+'] '+where+': '+(msg||'')+' | lastKey='+LAST.key;
+    var a=api53();
+    if(a&&a.crash_log){try{a.crash_log(line);}catch(e){}}
+    try{localStorage.setItem('sc_crash_last',line);}catch(e){}
+    if(window.console)console.error('[SC53]',line);
+  }catch(e){}
+}
+function toastSafe(m){
+  try{ if(window.toast)window.toast(m,'error',6000); }catch(e){}
+}
+
+/* ---- 1) adli kayit: hatalar + ani kapanis ---- */
+window.addEventListener('error',function(e){
+  logCrash('window.onerror',(e&&e.message||'')+' @'+(e&&e.filename||'')+':'+(e&&e.lineno||''));
+});
+window.addEventListener('unhandledrejection',function(e){
+  logCrash('unhandledrejection',String(e&&e.reason||''));
+});
+try{localStorage.setItem('sc_live','1');}catch(e){}
+window.addEventListener('beforeunload',function(){
+  try{
+    if(Date.now()-LAST.t<2000){
+      logCrash('beforeunload','pencere son tustan hemen sonra kapandi/reload oldu');
+    }else{
+      localStorage.setItem('sc_live','0');
+    }
+  }catch(e){}
+});
+
+/* ---- 2) son basilan tusu hatirla ---- */
+document.addEventListener('keydown',function(e){
+  LAST.key=(e.ctrlKey?'Ctrl+':'')+(e.shiftKey?'Shift+':'')+(e.altKey?'Alt+':'')+(e.key||'');
+  LAST.t=Date.now();
+},true);
+
+/* ---- 3) handler guvenlik sarmalayici ---- */
+function wrapSafe(name){
+  var f=window[name];
+  if(typeof f!=='function'||f.__sc53)return;
+  var w=function(){
+    try{ return f.apply(this,arguments); }
+    catch(err){
+      logCrash('handler:'+name,(err&&err.message)||String(err));
+      toastSafe('Hata ('+name+'): '+((err&&err.message)||err));
+      return undefined;
+    }
+  };
+  w.__sc53=true;
+  window[name]=w;
+}
+['kaydet','farkliKaydet','calistir','terminalToggle','sekmeKapat','yeniSekme',
+ 'dosyaYukle','aktifSekmeYap','showWelcome','renderTabs'].forEach(wrapSafe);
+
+/* ---- 4) host accelerator engelle + guvenli yonlendir ---- */
+document.addEventListener('keydown',function(e){
+  var c=e.ctrlKey||e.metaKey;
+  /* F5 / Ctrl+R / Ctrl+Shift+R : host RELOAD -> engelle, app'e ver */
+  if(e.key==='F5'&&!c){ e.preventDefault(); e.stopPropagation();
+    try{ if(window.calistir)window.calistir(); }catch(err){ logCrash('f5',err.message); }
+    return; }
+  if(c&&(e.key==='r'||e.key==='R')&&!e.altKey){ e.preventDefault(); e.stopPropagation(); return; }
+  if(!c||e.altKey)return;
+  var k=(e.key||'').toLowerCase();
+  if(k==='s'){ e.preventDefault(); e.stopPropagation();
+    try{ if(window.kaydet)window.kaydet(); }catch(err){ logCrash('ctrl+s',err.message); }
+    return; }
+  if(k==='o'){ e.preventDefault(); e.stopPropagation();
+    try{ if(window.dosyaAc)window.dosyaAc(); }catch(err){ logCrash('ctrl+o',err.message); }
+    return; }
+  if(k==='n'&&!e.shiftKey){ e.preventDefault(); e.stopPropagation();
+    try{ if(window.yeniSekmeAc)window.yeniSekmeAc(); }catch(err){ logCrash('ctrl+n',err.message); }
+    return; }
+  if(k==='p'&&!e.shiftKey){ e.preventDefault(); e.stopPropagation();
+    try{ if(window.quickOpenAc)window.quickOpenAc(); }catch(err){ logCrash('ctrl+p',err.message); }
+    return; }
+  if(k==='w'){ e.preventDefault(); e.stopPropagation();
+    try{ var tb=(typeof aktifTab==='function')?aktifTab():null;
+         if(tb&&window.sekmeKapat)window.sekmeKapat(tb.id); }catch(err){ logCrash('ctrl+w',err.message); }
+    return; }
+},true);
+
+/* ---- 5) onceki oturum ani bitti mi? ---- */
+function bootReport(){
+  try{
+    var live=localStorage.getItem('sc_live');
+    var last=localStorage.getItem('sc_crash_last');
+    if(live==='1'&&last){
+      toastSafe('Onceki oturum aniden bitti. Son kayit: '+last.slice(0,140));
+      logCrash('boot','onceki oturum ani bitti, last='+last.slice(0,200));
+    }
+    localStorage.setItem('sc_live','1');
+  }catch(e){}
+}
+setTimeout(bootReport,1500);
+})();
+</script>
+<!--/SC-CRASH-053-->
+
 <!--SC-FLIP-046-->
 <script>window.SC_COMPANY_LOGO="__SC_COMPANY_LOGO__";</script>
 <style>

@@ -3147,3 +3147,35 @@ Api.calistir = _sc44_calistir
 Api.runtime_kur = _sc44_runtime_kur
 Api.runtime_durum = _sc44_runtime_durum
 # ===== /SC-RUN-044 =====
+# ===== SC-CRASH-053 =====
+import os as _s53_os
+
+
+def _sc53_crash_log(self, line):
+    """Adli log: ~/.splash_code/crash.log dosyasina ekler."""
+    try:
+        d = _s53_os.path.join(_s53_os.path.expanduser("~"), ".splash_code")
+        _s53_os.makedirs(d, exist_ok=True)
+        p = _s53_os.path.join(d, "crash.log")
+        with open(p, "a", encoding="utf-8") as f:
+            f.write(str(line)[:500] + "\n")
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "hata": str(e)}
+
+
+def _sc53_crash_oku(self):
+    try:
+        p = _s53_os.path.join(_s53_os.path.expanduser("~"),
+                              ".splash_code", "crash.log")
+        if not _s53_os.path.isfile(p):
+            return {"ok": True, "lines": []}
+        with open(p, "r", encoding="utf-8", errors="ignore") as f:
+            return {"ok": True, "lines": f.read().splitlines()[-40:]}
+    except Exception as e:
+        return {"ok": False, "hata": str(e), "lines": []}
+
+
+Api.crash_log = _sc53_crash_log
+Api.crash_oku = _sc53_crash_oku
+# ===== /SC-CRASH-053 =====
